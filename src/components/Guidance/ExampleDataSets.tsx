@@ -12,10 +12,12 @@ const ExamplesContainer = styled.div`
 
 const ExamplesTitle = styled.h3`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
-  color: ${({ theme }) => theme.colors.text.primary};
+  color: ${({ theme }) => theme.colors.primary};
   display: flex;
   align-items: center;
   font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.extraBold};
+  line-height: 1.4;
 `;
 
 // Improved Layout - Switch to a 2x3 grid with larger cards

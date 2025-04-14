@@ -23,6 +23,13 @@ declare module 'styled-components' {
       };
       border: string;
       divider: string;
+      tooltip: {
+        background: string;
+        text: string;
+        title: string;
+        border: string;
+        link: string;
+      };
     };
     breakpoints: {
       xs: string;
@@ -49,12 +56,21 @@ declare module 'styled-components' {
         xl: string;
         xxl: string;
       };
+      heading: {
+        h1: string;
+        h2: string;
+        h3: string;
+        h4: string;
+        h5: string;
+        h6: string;
+      };
       fontWeight: {
         light: number;
         regular: number;
         medium: number;
         semiBold: number;
         bold: number;
+        extraBold: number;
       };
       lineHeight: {
         xs: number;
@@ -62,6 +78,8 @@ declare module 'styled-components' {
         md: number;
         lg: number;
         xl: number;
+        xxl: number;
+        heading: number;
       };
     };
     shadows: {

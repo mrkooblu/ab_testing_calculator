@@ -19,6 +19,8 @@ import BayesianAnalysis from './BayesianAnalysis';
 import { SequentialTesting } from './SequentialTesting';
 import { SegmentAnalysisResults } from './SegmentAnalysisResults';
 import { Segment } from '../Form/SegmentationPanel';
+import WinningVariant from './WinningVariant';
+import { determineWinningVariant } from '../../utils/winningVariantAnalysis';
 
 // Define keyframe animations
 const fadeIn = keyframes`
@@ -93,6 +95,10 @@ const ResultsHeader = styled.div`
     align-items: flex-start;
     gap: ${({ theme }) => theme.spacing.md};
   }
+`;
+
+const WinningVariantSection = styled.div`
+  margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
 const ResultsTitle = styled.h2`
@@ -491,6 +497,49 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
         <ResultsTitle>Test Results</ResultsTitle>
         <ShareButton testData={data} />
       </ResultsHeader>
+      
+      {/* Add Winning Variant Component */}
+      {activeVariantKeys.length >= 2 && (
+        <WinningVariantSection>
+          {(() => {
+            const { winningKey, confidenceLevel } = determineWinningVariant(
+              data,
+              settings.confidenceLevel
+            );
+            
+            if (winningKey) {
+              const winningVariant = variants[winningKey];
+              const winningType = getVariantTypeFromKey(winningKey);
+              
+              // Generate comparisons with all other variants
+              const variantComparisons = activeVariantKeys
+                .filter(key => key !== winningKey)
+                .map(key => {
+                  const variantType = getVariantTypeFromKey(key);
+                  const variantRate = variants[key].conversionRate;
+                  const conversionRateDiff = winningVariant.conversionRate - variantRate;
+                  
+                  return {
+                    variantType,
+                    conversionRateDiff
+                  };
+                });
+              
+              return (
+                <WinningVariant
+                  winningVariantKey={winningKey}
+                  winningVariantType={winningType}
+                  conversionRate={winningVariant.conversionRate}
+                  confidenceLevel={confidenceLevel}
+                  comparisons={variantComparisons}
+                  confidenceThreshold={settings.confidenceLevel}
+                />
+              );
+            }
+            return null;
+          })()}
+        </WinningVariantSection>
+      )}
       
       <ResultsDashboard
         variantData={variants}

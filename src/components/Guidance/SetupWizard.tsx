@@ -65,6 +65,8 @@ const WizardTitle = styled.h2`
   color: ${({ theme }) => theme.colors.primary};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
   font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.extraBold};
+  line-height: 1.4;
 `;
 
 const StepIndicator = styled.div`

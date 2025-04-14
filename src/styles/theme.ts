@@ -1,25 +1,25 @@
 const theme = {
   colors: {
-    primary: '#4361ee',
-    secondary: '#3f37c9',
+    primary: '#2E5CE5',
+    secondary: '#121737',
     success: '#4caf50',
     error: '#f44336',
     warning: '#ff9800',
     info: '#2196f3',
-    variantA: '#4361ee',
+    variantA: '#2E5CE5',
     variantB: '#f72585',
     variantC: '#7209b7',
     variantD: '#3a0ca3',
     background: '#ffffff',
     surface: '#f8f9fa',
     text: {
-      primary: '#212529',
-      secondary: '#6c757d',
-      disabled: '#adb5bd',
-      hint: '#868e96'
+      primary: '#121737',
+      secondary: '#595D73',
+      disabled: '#A0A2AF',
+      hint: '#A0A2AF'
     },
-    border: '#e9ecef',
-    divider: '#dee2e6',
+    border: '#A3B7EB',
+    divider: '#EBF3FF',
     tooltip: {
       background: 'rgba(33, 33, 33, 0.9)',
       text: '#ffffff',
@@ -44,30 +44,39 @@ const theme = {
     xxl: '3rem'
   },
   typography: {
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Manrope', sans-serif",
     fontSize: {
       xs: '0.75rem',
       sm: '0.875rem',
       md: '1rem',
-      lg: '1.25rem',
-      xl: '1.5rem',
-      xxl: '2rem'
+      lg: '1.125rem',
+      xl: '1.375rem',
+      xxl: '1.875rem'
+    },
+    heading: {
+      h1: '2.5rem',
+      h2: '1.875rem',
+      h3: '1.5rem',
+      h4: '1.25rem',
+      h5: '1.125rem',
+      h6: '1rem',
     },
     fontWeight: {
       light: 300,
       regular: 400,
       medium: 500,
       semiBold: 600,
-      bold: 700
+      bold: 700,
+      extraBold: 800
     },
     lineHeight: {
       xs: 1.25,
-      sm: 1.5,
-      md: 1.6,
-      lg: 1.75,
-      xl: 2,
-      normal: 1.5,
-      loose: 1.8
+      sm: 1.4,
+      md: 1.5,
+      lg: 1.6,
+      xl: 1.8,
+      xxl: 2,
+      heading: 1.3
     }
   },
   shadows: {

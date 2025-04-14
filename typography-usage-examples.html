@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typography Usage Examples</title>
+  <link rel="stylesheet" href="typography-guidelines.css">
+  <style>
+    /* Demo Styles */
+    body {
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .example-section {
+      margin-bottom: 60px;
+      border-bottom: 1px solid var(--color-light-accent);
+      padding-bottom: 40px;
+    }
+    
+    .example-title {
+      margin-bottom: 24px;
+      color: var(--color-accent);
+    }
+    
+    .example-box {
+      padding: 24px;
+      margin-bottom: 24px;
+      background-color: var(--color-bg-light);
+      border-radius: 8px;
+    }
+    
+    .dark-box {
+      background-color: var(--color-primary);
+    }
+    
+    .code-snippet {
+      background: #f5f5f5;
+      padding: 16px;
+      border-radius: 4px;
+      font-family: monospace;
+      margin-top: 16px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    
+    .component-example {
+      border: 1px solid var(--color-light-accent);
+      padding: 24px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    
+    .demo-header {
+      background-color: var(--color-bg-light);
+      padding: 20px;
+      margin-bottom: 40px;
+      border-radius: 8px;
+    }
+    
+    .demo-footer {
+      background-color: var(--color-primary);
+      padding: 40px 20px;
+      margin-top: 40px;
+      border-radius: 8px;
+    }
+    
+    .demo-cta {
+      background-color: var(--color-bg-light);
+      padding: 30px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .demo-article {
+      margin-bottom: 40px;
+    }
+    
+    .demo-button {
+      background-color: var(--color-accent);
+      color: var(--color-white);
+      border: none;
+      padding: 16px 24px;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    
+    .demo-breadcrumb {
+      margin-bottom: 20px;
+    }
+    
+    .demo-author {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    
+    .author-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 26px;
+      background-color: #ddd;
+    }
+    
+    .author-info {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .badge-example {
+      display: inline-block;
+      background-color: var(--color-accent);
+      color: var(--color-white);
+      padding: 5px 9px;
+      border-radius: 2px;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="example-section">
+    <h1 class="example-title">Typography Usage Examples</h1>
+    <p class="text-large">This page demonstrates how to use the typography styles defined in our style guide for various components and elements.</p>
+  </div>
+  
+  <!-- Headings Example -->
+  <div class="example-section">
+    <h2 class="example-title">Heading Hierarchy</h2>
+    <div class="example-box">
+      <h1>H1: Page Title (40px)</h1>
+      <h2>H2: Section Title (30px)</h2>
+      <h3>H3: Subsection Title (24px)</h3>
+      <h4>H4: Group Title (20px)</h4>
+      <h5>H5: Component Title (18px)</h5>
+      <h6>H6: Minor Title (16px)</h6>
+    </div>
+    <div class="code-snippet">
+&lt;h1&gt;H1: Page Title&lt;/h1&gt;
+&lt;h2&gt;H2: Section Title&lt;/h2&gt;
+&lt;h3&gt;H3: Subsection Title&lt;/h3&gt;
+&lt;h4&gt;H4: Group Title&lt;/h4&gt;
+&lt;h5&gt;H5: Component Title&lt;/h5&gt;
+&lt;h6&gt;H6: Minor Title&lt;/h6&gt;</div>
+  </div>
+  
+  <!-- Body Text Example -->
+  <div class="example-section">
+    <h2 class="example-title">Body Text</h2>
+    <div class="example-box">
+      <p class="text-large">Large Body Text (18px): The largest accounts on social media have millions of followers, and with that, enormous influence. The top accounts vary considerably across platforms, but there are several people who feature in multiple lists.</p>
+      
+      <p class="text-medium">Medium Body Text (16px): The concept of a decentralized financial system - where every transaction is recorded and traceable - seems like it would be hacker-proof. Poor system oversight and limited vetting in 3rd party services have left some new networks so vulnerable.</p>
+      
+      <p class="text-small">Small Body Text (14px): Crypto heists are big businesses for hackers these days. Long before crypto heists graced the cover of media publications, the traditional stock market has battled scammers and fraudsters for decades.</p>
+      
+      <p class="text-xs">Extra Small Text (13px): By clicking "Subscribe" you agree to Semrush Privacy Policy and consent to Semrush using your contact data for newsletter purposes</p>
+      
+      <p class="text-xxs">Extra Extra Small Text (12px): © 2025 Exploding Topics is a Trademark of Semrush Inc. Privacy Policy. Terms of Service.</p>
+    </div>
+    <div class="code-snippet">
+&lt;p class="text-large"&gt;Large Body Text (18px)...&lt;/p&gt;
+&lt;p class="text-medium"&gt;Medium Body Text (16px)...&lt;/p&gt;
+&lt;p class="text-small"&gt;Small Body Text (14px)...&lt;/p&gt;
+&lt;p class="text-xs"&gt;Extra Small Text (13px)...&lt;/p&gt;
+&lt;p class="text-xxs"&gt;Extra Extra Small Text (12px)...&lt;/p&gt;</div>
+  </div>
+  
+  <!-- Text Variations -->
+  <div class="example-section">
+    <h2 class="example-title">Text Variations</h2>
+    <div class="example-box">
+      <p class="text-medium">Default Text - Primary Color (#121737)</p>
+      <p class="text-medium text-secondary">Secondary Text (#595D73)</p>
+      <p class="text-medium text-accent">Accent Text (#2E5CE5)</p>
+      <p class="text-medium text-light">Light Gray Text (#A0A2AF)</p>
+      <div style="background-color: var(--color-primary); padding: 16px; border-radius: 4px;">
+        <p class="text-medium text-white">White Text on Dark Background (#FFFFFF)</p>
+      </div>
+    </div>
+    <div class="code-snippet">
+&lt;p class="text-medium"&gt;Default Text - Primary Color&lt;/p&gt;
+&lt;p class="text-medium text-secondary"&gt;Secondary Text&lt;/p&gt;
+&lt;p class="text-medium text-accent"&gt;Accent Text&lt;/p&gt;
+&lt;p class="text-medium text-light"&gt;Light Gray Text&lt;/p&gt;
+&lt;p class="text-medium text-white"&gt;White Text&lt;/p&gt;</div>
+  </div>
+  
+  <!-- Font Weights -->
+  <div class="example-section">
+    <h2 class="example-title">Font Weights</h2>
+    <div class="example-box">
+      <p class="text-medium font-light">Light Weight (300)</p>
+      <p class="text-medium font-regular">Regular Weight (400)</p>
+      <p class="text-medium font-medium">Medium Weight (500)</p>
+      <p class="text-medium font-semibold">Semibold Weight (600)</p>
+      <p class="text-medium font-bold">Bold Weight (700)</p>
+      <p class="text-medium font-extrabold">Extrabold Weight (800)</p>
+    </div>
+    <div class="code-snippet">
+&lt;p class="text-medium font-light"&gt;Light Weight (300)&lt;/p&gt;
+&lt;p class="text-medium font-regular"&gt;Regular Weight (400)&lt;/p&gt;
+&lt;p class="text-medium font-medium"&gt;Medium Weight (500)&lt;/p&gt;
+&lt;p class="text-medium font-semibold"&gt;Semibold Weight (600)&lt;/p&gt;
+&lt;p class="text-medium font-bold"&gt;Bold Weight (700)&lt;/p&gt;
+&lt;p class="text-medium font-extrabold"&gt;Extrabold Weight (800)&lt;/p&gt;</div>
+  </div>
+  
+  <!-- Special Text Elements -->
+  <div class="example-section">
+    <h2 class="example-title">Special Text Elements</h2>
+    <div class="example-box">
+      <p class="intro-text">Intro Text (22px): The largest accounts on social media have millions of followers, and with that, enormous influence.</p>
+      
+      <p class="section-title">Section Title (16px)</p>
+      
+      <p class="caption">Caption Text (13px): Last Updated: February 21, 2025</p>
+      
+      <div>
+        <span class="badge">Pro</span>
+        <span class="badge" style="background-color: var(--color-light-gray);">New</span>
+      </div>
+      
+      <p class="breadcrumb">Blog > Category > Most Followed Accounts on Social Media (2025)</p>
+      
+      <button class="demo-button"><span class="button-text">Get Free Account</span></button>
+    </div>
+    <div class="code-snippet">
+&lt;p class="intro-text"&gt;Intro Text (22px)...&lt;/p&gt;
+&lt;p class="section-title"&gt;Section Title (16px)&lt;/p&gt;
+&lt;p class="caption"&gt;Caption Text (13px)...&lt;/p&gt;
+&lt;span class="badge"&gt;Pro&lt;/span&gt;
+&lt;p class="breadcrumb"&gt;Blog &gt; Category &gt; Title&lt;/p&gt;
+&lt;button&gt;&lt;span class="button-text"&gt;Get Free Account&lt;/span&gt;&lt;/button&gt;</div>
+  </div>
+  
+  <!-- Component Examples -->
+  <div class="example-section">
+    <h2 class="example-title">Component Examples</h2>
+    
+    <!-- Header Example -->
+    <h3>Page Header</h3>
+    <div class="component-example demo-header">
+      <p class="breadcrumb">Blog > Category > Most Followed Accounts on Social Media (2025)</p>
+      <h1>Most Followed Accounts on Social Media (2025)</h1>
+      <div class="demo-author">
+        <div class="author-avatar"></div>
+        <div class="author-info">
+          <p class="caption">by Josh Howarth</p>
+          <p class="text-xs text-light">Last Updated: February 21, 2025</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Article Example -->
+    <h3>Article Content</h3>
+    <div class="component-example demo-article">
+      <p class="intro-text">The largest accounts on social media have millions of followers, and with that, enormous influence.</p>
+      
+      <p class="text-large">The top accounts vary considerably across platforms, but there are several people who feature in multiple lists. In this report, we'll dive into the most followed accounts on each of the top social media platforms, including the top 5 most-followed people overall.</p>
+      
+      <h2>Who is the Most Followed Person on Social Media?</h2>
+      
+      <p class="text-medium">With over 1 billion total followers, Cristiano Ronaldo is the most-followed person across social media platforms.</p>
+      
+      <h3>Most Followed Accounts on Instagram</h3>
+      
+      <p class="text-medium">Crypto heists are big businesses for hackers these days. Long before crypto heists graced the cover of media publications, the traditional stock market has battled scammers and fraudsters for decades.</p>
+      
+      <p class="text-medium">The concept of a decentralized financial system - where every transaction is recorded and traceable - seems like it would be hacker-proof. Poor system oversight and limited vetting in 3rd party services have left some new networks so vulnerable that it's become a hacker's paradise.</p>
+    </div>
+    
+    <!-- CTA Example -->
+    <h3>Call to Action</h3>
+    <div class="component-example demo-cta">
+      <p class="cta-title">Stop Guessing, Start Growing 🚀</p>
+      <p class="text-small">Use real-time topic data to create content that resonates and brings results.</p>
+      <button class="demo-button"><span class="button-text">Get Free Account</span></button>
+    </div>
+    
+    <!-- Footer Example -->
+    <h3>Footer</h3>
+    <div class="component-example demo-footer">
+      <div style="display: flex; gap: 80px; margin-bottom: 30px;">
+        <div>
+          <p class="footer-title text-white">Exploding Topics</p>
+          <p class="footer-link text-light">Join Pro</p>
+          <p class="footer-link text-light">Newsletter</p>
+          <p class="footer-link text-light">Trending Topics</p>
+        </div>
+        <div>
+          <p class="footer-title text-white">Resources</p>
+          <p class="footer-link text-light">Blog</p>
+          <p class="footer-link text-light">Marketing Academy</p>
+          <p class="footer-link text-light">Free Webinars</p>
+        </div>
+      </div>
+      <p class="text-xxs text-light">© 2025 Exploding Topics is a Trademark of Semrush Inc.</p>
+    </div>
+  </div>
+  
+  <div class="example-section" style="border-bottom: none;">
+    <h2 class="example-title">Mobile Responsive Examples</h2>
+    <p class="text-medium">Resize your browser window to see how typography scales down on mobile screens (less than 768px wide).</p>
+    <p class="text-small">Note: H1 becomes 32px, H2 becomes 26px, and other headings also reduce proportionally while body text maintains readability.</p>
+  </div>
+
+</body>
+</html> 

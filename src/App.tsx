@@ -17,8 +17,14 @@ import { calculateConversionRate } from './utils/statsCalculator';
 
 // Define a key for storing wizard completion in localStorage
 const WIZARD_COMPLETED_KEY = 'ab_testing_calculator_wizard_completed';
+// Define a key for tracking page load state
+const SESSION_KEY = 'ab_testing_calculator_session';
 
 // Styled components for the App
+const AppWrapper = styled.div`
+  width: 100%;
+`;
+
 const AppContainer = styled.main`
   max-width: 1200px;
   margin: 0 auto;
@@ -29,30 +35,18 @@ const AppContainer = styled.main`
   }
 `;
 
+// Full width header that extends beyond the AppContainer
 const HeaderSection = styled.div`
-  text-align: left;
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-  padding: 4rem 2rem;
   position: relative;
-  background: linear-gradient(to bottom, ${({ theme }) => `${theme.colors.primary}10, ${theme.colors.background}`});
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  padding: 4.2rem 0;
+  background: #121737 url('/tools-background.svg') no-repeat center center;
+  background-size: cover;
+  width: 100%;
   overflow: hidden;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: radial-gradient(${({ theme }) => `${theme.colors.primary}15`} 1px, transparent 1px);
-    background-size: 20px 20px;
-    opacity: 0.5;
-    z-index: 0;
-  }
-
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    padding: 1.5rem 1rem;
+    padding: 2rem 0;
     margin-bottom: ${({ theme }) => theme.spacing.md};
   }
 `;
@@ -60,24 +54,28 @@ const HeaderSection = styled.div`
 const HeroContent = styled.div`
   position: relative;
   z-index: 1;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 850px;
+  margin: 0;
+  padding: 0 2rem;
+  text-align: left;
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     max-width: 100%;
+    padding: 0 1rem;
   }
 `;
 
 const MainTitle = styled.h1`
-  font-size: 3.5rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 44px;
   font-weight: 800;
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  line-height: 1.3;
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
   }
 `;
 
@@ -93,26 +91,29 @@ const Subtitle = styled.h2`
 `;
 
 const Description = styled.p`
-  color: ${({ theme }) => theme.colors.text.secondary};
-  font-size: 1.125rem;
-  line-height: 1.6;
-  margin-bottom: 2rem;
+  font-family: 'Manrope', sans-serif;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  line-height: 1.8;
+  margin-bottom: 2.5rem;
+  max-width: 750px;
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     font-size: 1rem;
-    margin-bottom: 1rem;
-    line-height: 1.4;
+    margin-bottom: 2rem;
+    line-height: 1.6;
   }
 `;
 
 const GetStartedButton = styled.button`
+  font-family: 'Manrope', sans-serif;
   background-color: ${({ theme }) => theme.colors.primary};
   color: white;
   border: none;
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.75rem;
   font-size: 1rem;
-  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   cursor: pointer;
   transition: background-color 0.2s;
   
@@ -166,23 +167,38 @@ const App: React.FC = () => {
   
   // Check for URL parameters on initial load
   useEffect(() => {
-    // Parse URL search parameters
-    const searchParams = new URLSearchParams(window.location.search);
-    const encodedData = Object.fromEntries(searchParams.entries());
+    // Check if this is a page refresh by checking sessionStorage
+    const isPageRefresh = sessionStorage.getItem(SESSION_KEY) === 'active';
     
-    // If we have parameters, try to decode them
-    if (Object.keys(encodedData).length > 0) {
-      const decodedData = decodeURLToTestData(window.location.search);
-      if (decodedData) {
-        setTestData(decodedData);
-        setIsCalculated(true);
-        
-        // Scroll to results since we have data from URL params
-        setTimeout(() => {
-          if (resultsRef.current) {
-            resultsRef.current.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 300); // Slightly longer delay to ensure everything renders
+    // Set session flag for future page loads
+    sessionStorage.setItem(SESSION_KEY, 'active');
+    
+    // If this is a page refresh, clear URL parameters
+    if (isPageRefresh && window.location.search) {
+      window.history.pushState({}, '', window.location.pathname);
+      return; // Exit early to prevent processing URL parameters
+    }
+    
+    // Only process URL parameters if not a page refresh
+    if (window.location.search) {
+      // Parse URL search parameters
+      const searchParams = new URLSearchParams(window.location.search);
+      const encodedData = Object.fromEntries(searchParams.entries());
+      
+      // If we have parameters, try to decode them
+      if (Object.keys(encodedData).length > 0) {
+        const decodedData = decodeURLToTestData(window.location.search);
+        if (decodedData) {
+          setTestData(decodedData);
+          setIsCalculated(true);
+          
+          // Scroll to results since we have data from URL params
+          setTimeout(() => {
+            if (resultsRef.current) {
+              resultsRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 300); // Slightly longer delay to ensure everything renders
+        }
       }
     }
     
@@ -191,7 +207,33 @@ const App: React.FC = () => {
     if (!hasCompletedWizard) {
       setShowWizard(true);
     }
+    
+    // Add event listener for beforeunload to reset session on hard refreshes
+    const handleBeforeUnload = () => {
+      // Keep the session active, but ensure URL params are cleared on next load
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
+  
+  // Add a reset function to clear state and URL parameters
+  const handleReset = () => {
+    // Clear state
+    setTestData(null);
+    setIsCalculated(false);
+    setSegments([]);
+    
+    // Clear URL parameters
+    window.history.pushState({}, '', window.location.pathname);
+    
+    // Scroll to top of calculator
+    setTimeout(() => {
+      if (calculatorRef.current) {
+        calculatorRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
   
   const handleWizardComplete = () => {
     setShowWizard(false);
@@ -275,6 +317,7 @@ const App: React.FC = () => {
     if (calculatorRef.current) {
       calculatorRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+    setActiveTab('calculator');
   };
   
   // Define the main tabs
@@ -334,32 +377,60 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
-      <AppContainer>
+      <AppWrapper>
         <HeaderSection>
-          <HeroContent>
-            <MainTitle>A/B Testing Significance Calculator</MainTitle>
-            <Description>
-              Are your results statistically significant? Find out if your test variations made a 
-              real difference. Our calculator helps you determine significance, analyze 
-              conversion rates, and make data-driven decisions.
-            </Description>
-          </HeroContent>
+          <AppContainer>
+            <HeroContent>
+              <MainTitle>
+                A/B Testing Significance Calculator
+              </MainTitle>
+              <Description>
+                Are your results statistically significant? Find out if your test variations made a 
+                real difference. Our calculator helps you determine significance, analyze 
+                conversion rates, and make data-driven decisions.
+              </Description>
+              <GetStartedButton onClick={scrollToCalculator}>
+                Get Started
+              </GetStartedButton>
+            </HeroContent>
+          </AppContainer>
         </HeaderSection>
 
-        <TabsContainer 
-          tabs={mainTabs} 
-          defaultTab="calculator" 
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-        
-        {showWizard && (
-          <SetupWizard 
-            onComplete={handleWizardComplete} 
-            onApplyExample={handleApplyExample}
+        <AppContainer>
+          <TabsContainer 
+            tabs={mainTabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
           />
-        )}
-      </AppContainer>
+          
+          {/* Add the reset button after the container that displays the active tab content */}
+          {isCalculated && activeTab === 'calculator' && (
+            <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+              <button 
+                onClick={handleReset}
+                style={{
+                  backgroundColor: theme.colors.background,
+                  color: theme.colors.text.primary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  padding: '0.5rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Reset Calculator
+              </button>
+            </div>
+          )}
+          
+          {showWizard && (
+            <SetupWizard 
+              onComplete={handleWizardComplete} 
+              onApplyExample={handleApplyExample}
+            />
+          )}
+        </AppContainer>
+      </AppWrapper>
     </ThemeProvider>
   );
 };

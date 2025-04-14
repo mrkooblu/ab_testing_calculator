@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import type { VariantKey, VariantType, ABTestFormData } from '../../types';
+import type { VariantKey, VariantType, ABTestFormData, VariantData } from '../../types';
 
 import Button from '../common/Button';
 import Input from '../common/Input';
@@ -139,48 +139,40 @@ const FormActions = styled.div`
 `;
 
 const StatCard = styled.div`
-  background-color: ${({ theme }) => theme.colors.surface};
-  padding: ${({ theme }) => theme.spacing.md};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  text-align: center;
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  box-shadow: inset 0 0 0 1px rgba(67, 97, 238, 0.15);
-  
-  @media (max-width: 768px) {
-    padding: ${({ theme }) => theme.spacing.sm};
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    text-align: left;
-  }
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  width: 100%;
 `;
 
 const StatLabel = styled.label`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.xs};
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
-  color: ${({ theme }) => theme.colors.text.primary};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   margin-bottom: ${({ theme }) => theme.spacing.xs};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme }) => theme.colors.text.primary};
   position: relative;
 
-  /* Ensure tooltip container is positioned relative to this label */
   & > div {
-    position: static;
+    position: relative;
   }
 `;
 
 const StatValue = styled.div`
-  font-size: ${({ theme }) => theme.typography.fontSize.lg};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.md};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  background-color: ${({ theme }) => theme.colors.background};
+  width: 100%;
+  text-align: right;
   color: ${({ theme }) => theme.colors.primary};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 // Helper function to get the variant type (A, B, C, D) from the variant key
@@ -419,6 +411,72 @@ const SettingTooltip: React.FC<{ content: string }> = ({ content }) => (
   </TooltipContainer>
 );
 
+// Local tooltip for consistency with Input component
+const InputTooltip = styled.div`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: ${({ theme }) => theme.colors.text.secondary};
+  color: white;
+  font-size: 10px;
+  cursor: help;
+  z-index: 5; /* Ensure the icon itself has a z-index */
+`;
+
+// Fixed positioning tooltip that looks like the screenshot
+const TooltipData = styled.div`
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  background-color: rgba(33, 33, 33, 0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-align: center;
+  width: max-content;
+  max-width: 250px;
+  font-size: 12px;
+  line-height: 1.4;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  pointer-events: none; /* Prevent tooltip from blocking hover */
+  
+  /* Position the tooltip */
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 10px; /* Space between tooltip and icon */
+  transition: opacity 0.2s, visibility 0.2s;
+  
+  /* Arrow pointing down */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(33, 33, 33, 0.95) transparent transparent transparent;
+  }
+  
+  ${InputTooltip}:hover & {
+    visibility: visible;
+    opacity: 1;
+  }
+`;
+
+// Wrapper component to create a proper positioning context
+const TooltipWrapper = styled.span`
+  position: relative;
+  display: inline-flex;
+  margin-left: ${({ theme }) => theme.spacing.xs};
+`;
+
 const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JSX.Element => {
   // Initialize form data
   const [formData, setFormData] = useState<ABTestFormData>({
@@ -476,44 +534,43 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
     }
   }, [initialData]); // Only re-run when initialData changes
 
-  // Update conversion rates when inputs change
-  useEffect(() => {
-    const updatedVariants = { ...formData.variants };
-    
-    Object.keys(updatedVariants).forEach((key) => {
-      const variantKey = key as VariantKey;
-      const variant = updatedVariants[variantKey];
-      updatedVariants[variantKey] = {
-        ...variant,
-        conversionRate: calculateConversionRate(variant.visitors, variant.conversions)
-      };
-    });
-    
-    setFormData(prevData => ({
-      ...prevData,
-      variants: updatedVariants
-    }));
-  }, [formData.variants]);
-
   // Handle numeric input changes
   const handleInputChange = (
     variantKey: VariantKey,
     field: 'visitors' | 'conversions',
     value: string
   ): void => {
-    const numValue = value === '' ? 0 : parseInt(value, 10);
+    // Ensure we have a valid number or default to 0
+    const numValue = value === '' ? 0 : Number(value);
     
     // Only update if we have a valid number
     if (!isNaN(numValue)) {
+      // Create temporary copy of variants to work with
+      const updatedVariants = { ...formData.variants };
+      const updatedVariant = { ...updatedVariants[variantKey] };
+      
+      // Update the specific field
+      updatedVariant[field] = numValue;
+      
+      // Recalculate conversion rate
+      const visitors = field === 'visitors' ? numValue : updatedVariant.visitors;
+      const conversions = field === 'conversions' ? numValue : updatedVariant.conversions;
+      
+      // Ensure conversions can't exceed visitors
+      const validatedConversions = Math.min(conversions, visitors);
+      if (field === 'conversions' && validatedConversions !== conversions) {
+        updatedVariant.conversions = validatedConversions;
+      }
+      
+      updatedVariant.conversionRate = calculateConversionRate(visitors, validatedConversions);
+      
+      // Update the variant in our temporary variants object
+      updatedVariants[variantKey] = updatedVariant;
+      
+      // Update the form data with all changes at once
       setFormData(prevData => ({
         ...prevData,
-        variants: {
-          ...prevData.variants,
-          [variantKey]: {
-            ...prevData.variants[variantKey],
-            [field]: numValue
-          }
-        }
+        variants: updatedVariants
       }));
       
       // Clear error for this field if it exists
@@ -528,7 +585,7 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
       // Validate that conversions are not greater than visitors
       if (
         field === 'conversions' && 
-        numValue > formData.variants[variantKey].visitors
+        numValue > updatedVariant.visitors
       ) {
         setFormErrors(prevErrors => ({
           ...prevErrors,
@@ -586,7 +643,7 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
     
     // Check if at least two variants have visitors
     const variantsWithVisitors = activeVariantKeys.filter(
-      key => formData.variants[key].visitors > 0
+      key => Number(formData.variants[key].visitors) > 0
     );
     
     if (variantsWithVisitors.length < 2) {
@@ -598,17 +655,17 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
     activeVariantKeys.forEach(variantKey => {
       const variant = formData.variants[variantKey];
       
-      if (variant.conversions > variant.visitors) {
+      if (Number(variant.conversions) > Number(variant.visitors)) {
         newErrors[`${variantKey}.conversions`] = 'Conversions cannot exceed visitors';
         isValid = false;
       }
       
-      if (variant.visitors < 0) {
+      if (Number(variant.visitors) < 0) {
         newErrors[`${variantKey}.visitors`] = 'Value cannot be negative';
         isValid = false;
       }
       
-      if (variant.conversions < 0) {
+      if (Number(variant.conversions) < 0) {
         newErrors[`${variantKey}.conversions`] = 'Value cannot be negative';
         isValid = false;
       }
@@ -624,9 +681,25 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
     
     if (!validateForm()) return;
     
+    // Create a copy of the variants with freshly calculated conversion rates
+    const processedVariants = Object.entries(formData.variants).reduce((acc, [key, variant]) => {
+      const variantKey = key as VariantKey;
+      const visitors = Number(variant.visitors);
+      const conversions = Number(variant.conversions);
+      const freshConversionRate = visitors > 0 ? (conversions / visitors) * 100 : 0;
+      
+      acc[variantKey] = {
+        ...variant,
+        visitors: visitors,
+        conversions: conversions,
+        conversionRate: freshConversionRate
+      };
+      return acc;
+    }, {} as Record<VariantKey, VariantData>);
+    
     // Filter only active variants for the calculation
     const calculationData: ABTestFormData = {
-      variants: { ...formData.variants },
+      variants: processedVariants,
       settings: { ...formData.settings }
     };
     
@@ -681,6 +754,7 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
                     fullWidth
                     key={`visitors-${variant.visitors}`}
                     allowMultipleNumbers={true}
+                    tooltipText="Enter a single number or paste multiple numbers separated by commas or spaces"
                   />
                 </div>
                 
@@ -697,12 +771,27 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
                     fullWidth
                     key={`conversions-${variant.conversions}`}
                     allowMultipleNumbers={true}
+                    tooltipText="Enter a single number or paste multiple numbers separated by commas or spaces"
                   />
                 </div>
                 
                 <StatCard>
-                  <StatLabel>Conversion Rate</StatLabel>
-                  <StatValue>{variant.conversionRate.toFixed(2)}%</StatValue>
+                  <StatLabel>
+                    Conversion Rate
+                    <TooltipWrapper>
+                      <InputTooltip>
+                        ?
+                        <TooltipData>
+                          Calculated as (Conversions / Visitors) × 100%. This value updates automatically based on your inputs.
+                        </TooltipData>
+                      </InputTooltip>
+                    </TooltipWrapper>
+                  </StatLabel>
+                  <StatValue>
+                    {variant.visitors > 0 
+                      ? ((variant.conversions / variant.visitors) * 100).toFixed(2) 
+                      : '0.00'}%
+                  </StatValue>
                 </StatCard>
               </VariantFieldsContainer>
             </VariantContainer>

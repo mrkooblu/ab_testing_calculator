@@ -147,50 +147,65 @@ const Input: React.FC<InputProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     
-    if (type === 'number' && allowMultipleNumbers) {
-      // If this is the first input and the current value is "0", clear it
-      if (isFirstInput && intermediateValue === '0' && /^\d/.test(newValue)) {
-        setIntermediateValue(newValue.charAt(newValue.length - 1));
-        setIsFirstInput(false);
-        return;
-      }
-      
+    if (type === 'number') {
       // Always update the intermediate value to show what user is typing
       setIntermediateValue(newValue);
-      setIsFirstInput(false);
-
-      // Allow empty input for backspace/delete operations
-      if (!newValue.trim()) {
-        const syntheticEvent = {
-          ...e,
-          target: {
-            ...e.target,
-            value: '0'
-          }
-        };
-        onChange(syntheticEvent);
-        setIsFirstInput(true);
-        return;
-      }
-
-      // Check if the input ends with a delimiter
-      const endsWithDelimiter = /[\s,\n]$/.test(newValue);
       
-      // Only update parent when we have a complete number (ends with delimiter)
-      if (endsWithDelimiter) {
-        const numbers = parseMultipleNumbers(newValue);
-        if (numbers.length > 0) {
+      if (allowMultipleNumbers) {
+        // If this is the first input and the current value is "0", clear it
+        if (isFirstInput && intermediateValue === '0' && /^\d/.test(newValue)) {
+          setIntermediateValue(newValue.charAt(newValue.length - 1));
+          setIsFirstInput(false);
+          return;
+        }
+        
+        setIsFirstInput(false);
+        
+        // Allow empty input for backspace/delete operations
+        if (!newValue.trim()) {
           const syntheticEvent = {
             ...e,
             target: {
               ...e.target,
-              value: numbers[numbers.length - 1].toString()
+              value: '0'
             }
           };
           onChange(syntheticEvent);
+          setIsFirstInput(true);
+          return;
         }
+        
+        // Check if the input ends with a delimiter
+        const endsWithDelimiter = /[\s,\n]$/.test(newValue);
+        
+        // Only update parent when we have a complete number (ends with delimiter or Enter key press)
+        if (endsWithDelimiter) {
+          const numbers = parseMultipleNumbers(newValue);
+          if (numbers.length > 0) {
+            const syntheticEvent = {
+              ...e,
+              target: {
+                ...e.target,
+                value: numbers[numbers.length - 1].toString()
+              }
+            };
+            onChange(syntheticEvent);
+          }
+        }
+      } else {
+        // For regular number inputs, directly update parent with the numeric value
+        const numericValue = newValue === '' ? '0' : newValue;
+        const syntheticEvent = {
+          ...e,
+          target: {
+            ...e.target,
+            value: numericValue
+          }
+        };
+        onChange(syntheticEvent);
       }
     } else {
+      // For other inputs, pass through normally
       setIntermediateValue(newValue);
       onChange(e);
     }
@@ -228,9 +243,27 @@ const Input: React.FC<InputProps> = ({
     if (type === 'number' && allowMultipleNumbers) {
       const numbers = parseMultipleNumbers(intermediateValue);
       if (numbers.length > 0) {
-        setIntermediateValue(numbers[numbers.length - 1].toString());
+        // Update with the last entered number
+        const lastNumber = numbers[numbers.length - 1].toString();
+        setIntermediateValue(lastNumber);
+        
+        // Also update the parent component with this value
+        const syntheticEvent = {
+          target: {
+            value: lastNumber
+          }
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
       } else {
         setIntermediateValue('0');
+        
+        // Update parent with zero value
+        const syntheticEvent = {
+          target: {
+            value: '0'
+          }
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
         setIsFirstInput(true);
       }
     }
@@ -249,16 +282,16 @@ const Input: React.FC<InputProps> = ({
       )}
       <StyledInput
         ref={inputRef}
-        type={allowMultipleNumbers ? 'text' : type}
+        type={allowMultipleNumbers && type === 'number' ? 'text' : type}
         id={id || name}
         name={name}
-        placeholder={placeholder}
+        placeholder={allowMultipleNumbers && type === 'number' ? 'Enter numbers separated by commas' : placeholder}
         value={intermediateValue}
         onChange={handleInputChange}
         onPaste={handlePaste}
         onBlur={handleBlur}
-        min={min}
-        max={max}
+        min={type === 'number' ? min : undefined}
+        max={type === 'number' ? max : undefined}
         disabled={disabled}
         required={required}
         hasError={!!error}

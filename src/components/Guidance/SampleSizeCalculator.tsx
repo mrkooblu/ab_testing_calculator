@@ -17,10 +17,13 @@ const CalculatorContainer = styled.div`
 
 const CalculatorTitle = styled.h3`
   margin-bottom: ${({ theme }) => theme.spacing.md};
-  color: ${({ theme }) => theme.colors.text.primary};
+  color: ${({ theme }) => theme.colors.primary};
   display: flex;
   align-items: center;
   justify-content: space-between;
+  font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.extraBold};
+  line-height: 1.4;
 `;
 
 const FormGroup = styled.div`
@@ -76,10 +79,11 @@ const Button = styled.button`
   border-radius: ${({ theme }) => theme.borderRadius.md};
   padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.md}`};
   font-size: ${({ theme }) => theme.typography.fontSize.md};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   cursor: pointer;
   transition: background-color 0.2s ease;
   width: 100%;
+  line-height: 1;
   
   &:hover {
     background-color: ${({ theme }) => theme.colors.secondary};
@@ -97,7 +101,9 @@ const ResultsContainer = styled.div`
 const ResultTitle = styled.h4`
   margin-bottom: ${({ theme }) => theme.spacing.sm};
   color: ${({ theme }) => theme.colors.text.primary};
-  font-size: ${({ theme }) => theme.typography.fontSize.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.lg};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.extraBold};
+  line-height: 1.4;
 `;
 
 const ResultValue = styled.div`
