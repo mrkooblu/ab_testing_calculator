@@ -1,4 +1,4 @@
-import { calculatePValue, calculateStatisticalPower } from './statistics';
+import { calculatePValue, calculateStatisticalPower, calculateZScore } from './statistics';
 
 /**
  * Interface for monitoring boundary options used in sequential testing
@@ -134,10 +134,13 @@ export function analyzeSequentialTest(
   
   // Calculate current p-value and power
   const pValue = calculatePValue(
-    visitorsControl,
-    conversionsControl,
-    visitorsTest,
-    conversionsTest
+    calculateZScore(
+      visitorsControl,
+      conversionsControl,
+      visitorsTest,
+      conversionsTest
+    ),
+    true  // two-sided test
   );
   
   const conversionRateControl = conversionsControl / visitorsControl;
@@ -180,6 +183,7 @@ export function analyzeSequentialTest(
  * @param numInterimAnalyses - Number of planned analyses (including final)
  * @param alpha - Significance level (default: 0.05)
  * @param power - Desired power (default: 0.8 for 80%)
+ * @param alphaBoundaryType - Type of boundary to use (default: 'obrien-fleming')
  * @returns The required sample size per group per look
  */
 export function calculateSequentialSampleSize(
@@ -187,7 +191,8 @@ export function calculateSequentialSampleSize(
   mde: number,
   numInterimAnalyses: number,
   alpha: number = 0.05,
-  power: number = 0.8
+  power: number = 0.8,
+  alphaBoundaryType: 'pocock' | 'obrien-fleming' = 'obrien-fleming'
 ): number {
   // Convert percentages to proportions if needed
   const baseRate = baseConversionRate > 1 ? baseConversionRate / 100 : baseConversionRate;
@@ -199,18 +204,28 @@ export function calculateSequentialSampleSize(
   const p1Var = baseRate * (1 - baseRate);
   const p2Var = testRate * (1 - testRate);
   
-  // Adjustment factor for multiple looks
-  // We use a conservative approach with approximately 30% increase for sequential designs
-  const adjustmentFactor = 1 + (numInterimAnalyses * 0.1);
-  
-  // Z critical values
+  // Z critical values for fixed design
   const zAlpha = 1.96; // For alpha = 0.05
   const zBeta = 0.84;  // For power = 0.8
+  
+  // Adjustment factor for multiple looks based on boundary type
+  let adjustmentFactor: number;
+  
+  if (alphaBoundaryType === 'pocock') {
+    // Pocock boundaries require a larger adjustment
+    // Approximation based on number of looks
+    adjustmentFactor = 1 + (numInterimAnalyses * 0.15);
+  } else { // 'obrien-fleming'
+    // O'Brien-Fleming boundaries are more efficient
+    // Less penalty for additional looks
+    adjustmentFactor = 1 + Math.sqrt(numInterimAnalyses) * 0.05;
+  }
   
   // Calculate standard fixed sample size
   const fixedSampleSize = 
     Math.pow(zAlpha + zBeta, 2) * (p1Var + p2Var) / Math.pow(baseRate - testRate, 2);
   
-  // Apply sequential adjustment
+  // Apply sequential adjustment and divide by number of looks
+  // This gives the sample size needed per look
   return Math.ceil(fixedSampleSize * adjustmentFactor / numInterimAnalyses);
 } 

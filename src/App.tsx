@@ -14,6 +14,7 @@ import { CalculatorIcon, GuideIcon, SampleSizeIcon, ExamplesIcon } from './compo
 import SampleSizeCalculator from './components/Guidance/SampleSizeCalculator';
 import ExampleDataSets from './components/Guidance/ExampleDataSets';
 import { calculateConversionRate } from './utils/statsCalculator';
+import Tooltip from './components/common/Tooltip';
 
 // Define a key for storing wizard completion in localStorage
 const WIZARD_COMPLETED_KEY = 'ab_testing_calculator_wizard_completed';
@@ -136,15 +137,31 @@ const ContentContainer = styled.div`
 `;
 
 const TutorialContainer = styled.div`
-  padding: 2rem;
   background-color: ${({ theme }) => theme.colors.surface};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: ${({ theme }) => theme.spacing.lg};
+  box-shadow: ${({ theme }) => theme.shadows.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
   border-top: 4px solid ${({ theme }) => theme.colors.primary};
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     padding: 1.5rem 1rem;
     border-radius: ${({ theme }) => theme.borderRadius.md};
+  }
+`;
+
+const TutorialTitle = styled.h3`
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.extraBold};
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: ${({ theme }) => theme.typography.fontSize.lg};
   }
 `;
 
@@ -353,9 +370,18 @@ const App: React.FC = () => {
       icon: <GuideIcon />,
       content: (
         <TutorialContainer>
-          <TutorialDescription>
-            Learn how to create effective A/B tests with this step-by-step tutorial. Each step explains a key concept with examples.
-          </TutorialDescription>
+          <TutorialTitle>
+            Interactive Tutorial: Understanding A/B Testing
+            <Tooltip
+              title="Interactive Tutorial"
+              content={
+                <>
+                  <p>This interactive tutorial guides you through the basics of A/B testing and how to use this calculator effectively.</p>
+                  <p>Each step explains key concepts with examples to help you understand statistical significance in A/B tests.</p>
+                </>
+              }
+            />
+          </TutorialTitle>
           <SetupWizard onComplete={() => {}} onApplyExample={handleApplyExample} isModal={false} />
         </TutorialContainer>
       )
@@ -389,9 +415,6 @@ const App: React.FC = () => {
                 real difference. Our calculator helps you determine significance, analyze 
                 conversion rates, and make data-driven decisions.
               </Description>
-              <GetStartedButton onClick={scrollToCalculator}>
-                Get Started
-              </GetStartedButton>
             </HeroContent>
           </AppContainer>
         </HeaderSection>

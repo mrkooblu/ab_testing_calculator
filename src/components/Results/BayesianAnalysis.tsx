@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { runBayesianTest, calculateExpectedLoss } from '../../utils/bayesianAnalysis';
 import { ABTestFormData, VariantKey } from '../../types';
+import { checkSampleSizeWarning } from '../../utils/statistics';
 
 interface BayesianAnalysisProps {
   testData: ABTestFormData;
@@ -41,6 +42,21 @@ const BayesianTitle = styled.h3`
   svg {
     margin-right: ${({ theme }) => theme.spacing.sm};
   }
+`;
+
+const WarningBanner = styled.div<{ severity: 'low' | 'medium' | 'high' }>`
+  background-color: ${({ theme, severity }) => 
+    severity === 'high' ? `${theme.colors.error}15` : 
+    severity === 'medium' ? `${theme.colors.warning}15` : 
+    `${theme.colors.info}15`};
+  border-left: 4px solid ${({ theme, severity }) => 
+    severity === 'high' ? theme.colors.error : 
+    severity === 'medium' ? theme.colors.warning : 
+    theme.colors.info};
+  padding: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
 const ProbabilityContainer = styled.div`
@@ -124,6 +140,12 @@ const MetricValue = styled.div`
   font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
 `;
 
+const MetricSubValue = styled.div`
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  color: ${({ theme }) => theme.colors.text.secondary};
+  margin-top: ${({ theme }) => theme.spacing.xs};
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -170,6 +192,44 @@ const StyledTable = styled.table`
   }
 `;
 
+const CredibleIntervalBar = styled.div`
+  width: 100%;
+  height: 8px;
+  background-color: ${({ theme }) => theme.colors.background};
+  border-radius: 4px;
+  margin-top: ${({ theme }) => theme.spacing.sm};
+  position: relative;
+`;
+
+const CredibleIntervalFill = styled.div<{ low: number; high: number; base: number }>`
+  position: absolute;
+  height: 100%;
+  left: ${({ low, base }) => `${50 + (low / base) * 50}%`};
+  right: ${({ high, base }) => `${50 - (high / base) * 50}%`};
+  background-color: ${({ theme }) => theme.colors.primary};
+  border-radius: 4px;
+`;
+
+const CredibleIntervalMarker = styled.div<{ position: number; base: number }>`
+  position: absolute;
+  height: 12px;
+  width: 2px;
+  bottom: -2px;
+  left: ${({ position, base }) => `${50 + (position / base) * 50}%`};
+  background-color: ${({ theme }) => theme.colors.text.secondary};
+  
+  &::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${({ theme }) => theme.colors.text.primary};
+    top: -10px;
+    left: -3px;
+  }
+`;
+
 const BayesianAnalysis: React.FC<BayesianAnalysisProps> = ({
   testData,
   controlKey,
@@ -180,6 +240,10 @@ const BayesianAnalysis: React.FC<BayesianAnalysisProps> = ({
   
   const control = testData.variants[controlKey];
   const test = testData.variants[testKey];
+  
+  // Check sample size warnings
+  const controlWarning = checkSampleSizeWarning(control.visitors, control.conversions);
+  const testWarning = checkSampleSizeWarning(test.visitors, test.conversions);
   
   useEffect(() => {
     // Run Bayesian analysis in a non-blocking way
@@ -237,6 +301,10 @@ const BayesianAnalysis: React.FC<BayesianAnalysisProps> = ({
     );
   }
   
+  // Calculate the max absolute value for scaling the credible interval bar
+  const maxAbsValue = Math.max(Math.abs(results.ci95Low), Math.abs(results.ci95High));
+  const scaleBase = Math.max(50, Math.ceil(maxAbsValue / 10) * 10); // Round up to nearest 10
+  
   return (
     <BayesianContainer>
       <BayesianTitle>
@@ -250,6 +318,18 @@ const BayesianAnalysis: React.FC<BayesianAnalysisProps> = ({
         </svg>
         Bayesian Analysis
       </BayesianTitle>
+      
+      {controlWarning.hasWarning && (
+        <WarningBanner severity={controlWarning.severity}>
+          Control group: {controlWarning.message} Bayesian results may be less reliable.
+        </WarningBanner>
+      )}
+      
+      {testWarning.hasWarning && (
+        <WarningBanner severity={testWarning.severity}>
+          Test group: {testWarning.message} Bayesian results may be less reliable.
+        </WarningBanner>
+      )}
       
       <ProbabilityContainer>
         <ProbabilityValue probability={results.probabilityOfImprovement}>
@@ -274,16 +354,34 @@ const BayesianAnalysis: React.FC<BayesianAnalysisProps> = ({
         <MetricCard>
           <MetricTitle>Expected Uplift</MetricTitle>
           <MetricValue>{results.expectedLift.toFixed(2)}%</MetricValue>
+          <MetricSubValue>
+            The average expected improvement based on posterior distribution
+          </MetricSubValue>
         </MetricCard>
         
         <MetricCard>
           <MetricTitle>95% Credible Interval</MetricTitle>
           <MetricValue>{results.ci95Low.toFixed(2)}% to {results.ci95High.toFixed(2)}%</MetricValue>
+          <CredibleIntervalBar>
+            <CredibleIntervalFill 
+              low={results.ci95Low} 
+              high={results.ci95High} 
+              base={scaleBase} 
+            />
+            <CredibleIntervalMarker position={0} base={scaleBase} />
+            <CredibleIntervalMarker position={results.expectedLift} base={scaleBase} />
+          </CredibleIntervalBar>
+          <MetricSubValue>
+            95% probability that the true uplift lies in this range
+          </MetricSubValue>
         </MetricCard>
         
         <MetricCard>
           <MetricTitle>Expected Loss</MetricTitle>
           <MetricValue>{results.expectedLoss.toFixed(4)}%</MetricValue>
+          <MetricSubValue>
+            Expected conversion loss if choosing variant {test.type} when {control.type} is better
+          </MetricSubValue>
         </MetricCard>
       </GridContainer>
       

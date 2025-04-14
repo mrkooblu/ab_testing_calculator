@@ -36,9 +36,39 @@ const WizardContainer = styled.div`
 const InlineContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.background};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  padding: ${({ theme }) => theme.spacing.lg};
   width: 100%;
-  box-shadow: ${({ theme }) => theme.shadows.md};
+`;
+
+const DescriptionBox = styled.div`
+  background-color: ${({ theme }) => `${theme.colors.info}10`};
+  border-left: 4px solid ${({ theme }) => theme.colors.info};
+  padding: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+`;
+
+const BlueSidebar = styled.div`
+  width: 6px;
+  height: 24px;
+  background-color: ${({ theme }) => theme.colors.primary};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  margin-right: ${({ theme }) => theme.spacing.md};
+`;
+
+const DescriptionText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.text.primary};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  line-height: 1.5;
+`;
+
+const ContentContainer = styled.div`
+  background-color: white;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  padding: ${({ theme }) => theme.spacing.xl} ${({ theme }) => theme.spacing.lg};
+  width: 100%;
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+  border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 const CloseButton = styled.button`
@@ -471,7 +501,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onApplyExample, i
   const renderContent = () => (
     <>
       <WizardHeader>
-        <WizardTitle>{!isModal ? "Interactive Tutorial: Understanding A/B Testing" : "A/B Testing Guide"}</WizardTitle>
+        {isModal && <WizardTitle>A/B Testing Guide</WizardTitle>}
         <StepIndicator>
           {steps.map((_, index) => (
             <StepDot 
@@ -527,7 +557,16 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onApplyExample, i
     );
   }
   
-  return <InlineContainer>{renderContent()}</InlineContainer>;
+  return (
+    <InlineContainer>
+      <DescriptionBox>
+        <DescriptionText>
+          Learn how to create effective A/B tests with this step-by-step tutorial. Each step explains a key concept with examples.
+        </DescriptionText>
+      </DescriptionBox>
+      <ContentContainer>{renderContent()}</ContentContainer>
+    </InlineContainer>
+  );
 };
 
 export default SetupWizard; 

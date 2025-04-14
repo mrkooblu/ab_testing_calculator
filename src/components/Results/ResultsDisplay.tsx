@@ -10,6 +10,10 @@ import {
   calculatePower,
   isSignificant,
 } from '../../utils/statsCalculator';
+import {
+  checkSampleSizeWarning,
+  calculateConfidenceInterval
+} from '../../utils/statistics';
 import ConfidenceVisualization from './ConfidenceVisualization';
 import TestStrengthMeter from './TestStrengthMeter';
 import ResultsDashboard from './ResultsDashboard';
@@ -337,6 +341,37 @@ const AnalysisMethodTitle = styled.h3`
   font-size: ${({ theme }) => theme.typography.fontSize.lg};
 `;
 
+// Add warning banner styled component
+const WarningBanner = styled.div<{ severity: 'low' | 'medium' | 'high' }>`
+  background-color: ${({ theme, severity }) => 
+    severity === 'high' ? `${theme.colors.error}15` : 
+    severity === 'medium' ? `${theme.colors.warning}15` : 
+    `${theme.colors.info}15`};
+  border-left: 4px solid ${({ theme, severity }) => 
+    severity === 'high' ? theme.colors.error : 
+    severity === 'medium' ? theme.colors.warning : 
+    theme.colors.info};
+  padding: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.text.secondary};
+`;
+
+const ConfidenceInterval = styled.span`
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  color: ${({ theme }) => theme.colors.text.secondary};
+  display: block;
+  margin-top: 2px;
+`;
+
+const UpliftValue = styled.span<{ isPositive: boolean }>`
+  color: ${({ theme, isPositive }) => 
+    isPositive ? theme.colors.success : theme.colors.error};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semiBold};
+  display: inline-flex;
+  align-items: center;
+`;
+
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segments = [] }) => {
   const { variants, settings } = data;
   
@@ -401,8 +436,22 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
       // Calculate Z-score using raw proportions
       const zScore = (testRate - controlRate) / standardError;
       
-      // Calculate p-value
-      const pValue = calculatePValue(zScore, settings.hypothesisType === 'two-sided');
+      // Add debug logging
+      console.log(`Comparison ${controlType} vs ${testType}:`, {
+        controlVisitors: controlVariant.visitors,
+        controlConversions: controlVariant.conversions,
+        controlRate,
+        testVisitors: testVariant.visitors,
+        testConversions: testVariant.conversions,
+        testRate,
+        pooledRate,
+        standardError,
+        zScore
+      });
+      
+      // Calculate p-value - guard against invalid Z-score values
+      const safeZScore = isNaN(zScore) || !isFinite(zScore) ? 0 : zScore;
+      const pValue = calculatePValue(safeZScore, settings.hypothesisType === 'two-sided');
       
       // Calculate power
       const alpha = (100 - settings.confidenceLevel) / 100;
@@ -555,12 +604,24 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
         </SummaryTitle>
         
         <SummaryText>
-          {betterVariant === testKey && 
-            `Variant ${testType}'s conversion rate (${testVariant.conversionRate.toFixed(2)}%) was ${Math.abs(relativeUplift).toFixed(2)}% ${relativeUplift > 0 ? 'higher' : 'lower'} than variant ${controlType}'s conversion rate (${controlVariant.conversionRate.toFixed(2)}%).`
-          }
-          {betterVariant === controlKey && 
-            `Variant ${controlType}'s conversion rate (${controlVariant.conversionRate.toFixed(2)}%) was ${Math.abs(relativeUplift).toFixed(2)}% ${relativeUplift < 0 ? 'higher' : 'lower'} than variant ${testType}'s conversion rate (${testVariant.conversionRate.toFixed(2)}%).`
-          }
+          {betterVariant === testKey && (
+            <>
+              Variant {testType}'s conversion rate ({testVariant.conversionRate.toFixed(2)}%) was{' '}
+              <UpliftValue isPositive={relativeUplift > 0}>
+                {relativeUplift > 0 ? '↑' : '↓'} {Math.abs(relativeUplift).toFixed(2)}%
+              </UpliftValue>{' '}
+              {relativeUplift > 0 ? 'higher' : 'lower'} than variant {controlType}'s conversion rate ({controlVariant.conversionRate.toFixed(2)}%).
+            </>
+          )}
+          {betterVariant === controlKey && (
+            <>
+              Variant {controlType}'s conversion rate ({controlVariant.conversionRate.toFixed(2)}%) was{' '}
+              <UpliftValue isPositive={relativeUplift < 0}>
+                {relativeUplift < 0 ? '↑' : '↓'} {Math.abs(relativeUplift).toFixed(2)}%
+              </UpliftValue>{' '}
+              {relativeUplift < 0 ? 'higher' : 'lower'} than variant {testType}'s conversion rate ({testVariant.conversionRate.toFixed(2)}%).
+            </>
+          )}
           {!betterVariant && 
             `Variant ${controlType}'s conversion rate (${controlVariant.conversionRate.toFixed(2)}%) and variant ${testType}'s conversion rate (${testVariant.conversionRate.toFixed(2)}%) are identical.`
           }
@@ -602,6 +663,26 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
 
         {analysisMethod === 'frequentist' && (
           <>
+            {/* Add warning banner based on sample size check */}
+            {(() => {
+              const controlWarning = checkSampleSizeWarning(controlVariant.visitors, controlVariant.conversions);
+              const testWarning = checkSampleSizeWarning(testVariant.visitors, testVariant.conversions);
+              
+              if (controlWarning.hasWarning || testWarning.hasWarning) {
+                return (
+                  <WarningBanner severity={
+                    controlWarning.severity === 'high' || testWarning.severity === 'high' ? 'high' :
+                    controlWarning.severity === 'medium' || testWarning.severity === 'medium' ? 'medium' : 'low'
+                  }>
+                    {controlWarning.hasWarning && `Control group: ${controlWarning.message} `}
+                    {testWarning.hasWarning && `Test group: ${testWarning.message} `}
+                    Sample size issues may affect the reliability of your results.
+                  </WarningBanner>
+                );
+              }
+              return null;
+            })()}
+            
             <ConfidenceVisualization
               controlMean={controlVariant.conversionRate}
               controlStdDev={Math.sqrt(controlVariant.conversionRate * (100 - controlVariant.conversionRate) / controlVariant.visitors)}
@@ -642,7 +723,30 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
               
               <StatItem>
                 <StatLabel>Relative Uplift</StatLabel>
-                <StatValue>{relativeUplift.toFixed(2)}%</StatValue>
+                <StatValue>
+                  <UpliftValue isPositive={relativeUplift > 0}>
+                    {relativeUplift > 0 ? '↑' : '↓'} {Math.abs(relativeUplift).toFixed(2)}%
+                  </UpliftValue>
+                </StatValue>
+                {(() => {
+                  // Calculate confidence interval for the difference
+                  const controlRate = controlVariant.conversions / controlVariant.visitors;
+                  const testRate = testVariant.conversions / testVariant.visitors;
+                  const se = Math.sqrt(
+                    controlRate * (1-controlRate) / controlVariant.visitors + 
+                    testRate * (1-testRate) / testVariant.visitors
+                  );
+                  const deltaRelative = (testRate - controlRate) / controlRate * 100;
+                  const seRelative = se / controlRate * 100;
+                  const ciLower = (deltaRelative - 1.96 * seRelative).toFixed(2);
+                  const ciUpper = (deltaRelative + 1.96 * seRelative).toFixed(2);
+                  
+                  return (
+                    <ConfidenceInterval>
+                      95% CI: [{ciLower}%, {ciUpper}%]
+                    </ConfidenceInterval>
+                  );
+                })()}
               </StatItem>
             </StatsGrid>
             
@@ -663,6 +767,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
                 </VariantStat>
                 <VariantStat>
                   Conversion Rate: <span>{controlVariant.conversionRate.toFixed(2)}%</span>
+                  {(() => {
+                    const ci = calculateConfidenceInterval(controlVariant.visitors, controlVariant.conversions);
+                    return (
+                      <ConfidenceInterval>
+                        95% CI: [{ci.lower.toFixed(2)}%, {ci.upper.toFixed(2)}%]
+                      </ConfidenceInterval>
+                    );
+                  })()}
                 </VariantStat>
               </VariantCard>
               
@@ -676,6 +788,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
                 </VariantStat>
                 <VariantStat>
                   Conversion Rate: <span>{testVariant.conversionRate.toFixed(2)}%</span>
+                  {(() => {
+                    const ci = calculateConfidenceInterval(testVariant.visitors, testVariant.conversions);
+                    return (
+                      <ConfidenceInterval>
+                        95% CI: [{ci.lower.toFixed(2)}%, {ci.upper.toFixed(2)}%]
+                      </ConfidenceInterval>
+                    );
+                  })()}
                 </VariantStat>
               </VariantCard>
             </VariantComparisonContainer>

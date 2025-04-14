@@ -106,6 +106,9 @@ const TestStrengthMeter: React.FC<TestStrengthMeterProps> = ({
   // Calculate strength percentage
   const strength = calculateTestStrength(pValue, alpha);
   
+  // Debug log to troubleshoot issues
+  console.log(`TestStrengthMeter - pValue: ${pValue}, alpha: ${alpha}, strength: ${strength}, isSignificant: ${isSignificant}`);
+  
   // Trigger animation on mount
   useEffect(() => {
     const timer = setTimeout(() => {

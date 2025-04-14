@@ -97,17 +97,21 @@ export const getCriticalZValue = (confidenceLevel: number, twoSided: boolean): n
  * @returns A percentage (0-100) indicating the test strength
  */
 export const calculateTestStrength = (pValue: number, alpha: number): number => {
+  // Cap p-value at 0.9999 to avoid division by zero or extremely small values
+  const safePValue = Math.min(pValue, 0.9999);
+  
   // If the test is already significant, return 100%
-  if (pValue <= alpha) {
+  if (safePValue <= alpha) {
     return 100;
   }
   
   // If the p-value is close to 1, the strength is close to 0
   // If the p-value is close to alpha, the strength is close to 100
-  const ratio = (1 - pValue) / (1 - alpha);
+  const ratio = (1 - safePValue) / (1 - alpha);
   
   // Scale to 0-100% range, with diminishing returns for very weak tests
-  const strength = Math.min(100, Math.max(0, 100 * ratio));
+  // Ensure a minimum strength of 1% for visibility in the UI
+  const strength = Math.max(1, Math.min(100, 100 * ratio));
   
   return strength;
 }; 
