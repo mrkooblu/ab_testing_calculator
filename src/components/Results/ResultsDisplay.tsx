@@ -25,6 +25,8 @@ import { SegmentAnalysisResults } from './SegmentAnalysisResults';
 import { Segment } from '../Form/SegmentationPanel';
 import WinningVariant from './WinningVariant';
 import { determineWinningVariant } from '../../utils/winningVariantAnalysis';
+import { formatPercent, formatNumber, formatPValue, DECIMAL_PRECISION } from '../../utils/constants';
+import LazyVisualization from './LazyVisualization';
 
 // Define keyframe animations
 const fadeIn = keyframes`
@@ -210,6 +212,7 @@ const StatItem = styled.div`
   border-radius: ${({ theme }) => theme.borderRadius.md};
   text-align: center;
   animation: ${highlightValue} 1.5s ease-out 0.8s;
+  position: relative;
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
     padding: ${({ theme }) => theme.spacing.sm};
@@ -220,6 +223,42 @@ const StatLabel = styled.div`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   color: ${({ theme }) => theme.colors.text.secondary};
   margin-bottom: ${({ theme }) => theme.spacing.xs};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const InfoIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: ${({ theme }) => theme.colors.text.secondary};
+  color: white;
+  font-size: 10px;
+  margin-left: ${({ theme }) => theme.spacing.xs};
+  cursor: help;
+  position: relative;
+  
+  &:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 250px;
+    padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
+    border-radius: ${({ theme }) => theme.borderRadius.sm};
+    background-color: ${({ theme }) => theme.colors.text.primary};
+    color: white;
+    font-size: ${({ theme }) => theme.typography.fontSize.xs};
+    z-index: 10;
+    line-height: 1.4;
+    text-align: left;
+  }
 `;
 
 const StatValue = styled.div`
@@ -487,6 +526,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
         power,
         isSignificant: isSignificantResult,
         betterVariant,
+        standardError
       });
     }
     
@@ -683,17 +723,31 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
               return null;
             })()}
             
-            <ConfidenceVisualization
-              controlMean={controlVariant.conversionRate}
-              controlStdDev={Math.sqrt(controlVariant.conversionRate * (100 - controlVariant.conversionRate) / controlVariant.visitors)}
-              testMean={testVariant.conversionRate}
-              testStdDev={Math.sqrt(testVariant.conversionRate * (100 - testVariant.conversionRate) / testVariant.visitors)}
-              confidenceLevel={settings.confidenceLevel}
-              isTwoSided={settings.hypothesisType === 'two-sided'}
-              isSignificant={isSignificantResult}
-              controlType={controlType}
-              testType={testType}
-            />
+            <LazyVisualization priority={8}>
+              <ConfidenceVisualization
+                controlMean={controlVariant.conversionRate}
+                controlStdDev={
+                  Math.sqrt(
+                    (controlVariant.conversionRate / 100) *
+                      (1 - controlVariant.conversionRate / 100) /
+                      controlVariant.visitors
+                  ) * 100
+                }
+                testMean={testVariant.conversionRate}
+                testStdDev={
+                  Math.sqrt(
+                    (testVariant.conversionRate / 100) *
+                      (1 - testVariant.conversionRate / 100) /
+                      testVariant.visitors
+                  ) * 100
+                }
+                confidenceLevel={settings.confidenceLevel}
+                isTwoSided={settings.hypothesisType === 'two-sided'}
+                isSignificant={isSignificantResult}
+                controlType={controlType}
+                testType={testType}
+              />
+            </LazyVisualization>
             
             <AutomatedInsights
               testData={data}
@@ -707,54 +761,70 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
             
             <StatsGrid>
               <StatItem>
-                <StatLabel>P-value</StatLabel>
-                <StatValue>{pValue.toFixed(4)}</StatValue>
+                <StatLabel>Control Rate</StatLabel>
+                <StatValue>{formatPercent(controlVariant.conversionRate)}</StatValue>
               </StatItem>
               
               <StatItem>
-                <StatLabel>Z-score</StatLabel>
-                <StatValue>{Math.abs(zScore).toFixed(2)}</StatValue>
-              </StatItem>
-              
-              <StatItem>
-                <StatLabel>Statistical Power</StatLabel>
-                <StatValue>{power.toFixed(2)}%</StatValue>
+                <StatLabel>Test Rate</StatLabel>
+                <StatValue>{formatPercent(testVariant.conversionRate)}</StatValue>
               </StatItem>
               
               <StatItem>
                 <StatLabel>Relative Uplift</StatLabel>
                 <StatValue>
                   <UpliftValue isPositive={relativeUplift > 0}>
-                    {relativeUplift > 0 ? '↑' : '↓'} {Math.abs(relativeUplift).toFixed(2)}%
+                    {relativeUplift > 0 ? '+' : ''}{formatPercent(relativeUplift)}
                   </UpliftValue>
                 </StatValue>
-                {(() => {
-                  // Calculate confidence interval for the difference
-                  const controlRate = controlVariant.conversions / controlVariant.visitors;
-                  const testRate = testVariant.conversions / testVariant.visitors;
-                  const se = Math.sqrt(
-                    controlRate * (1-controlRate) / controlVariant.visitors + 
-                    testRate * (1-testRate) / testVariant.visitors
-                  );
-                  const deltaRelative = (testRate - controlRate) / controlRate * 100;
-                  const seRelative = se / controlRate * 100;
-                  const ciLower = (deltaRelative - 1.96 * seRelative).toFixed(2);
-                  const ciUpper = (deltaRelative + 1.96 * seRelative).toFixed(2);
-                  
-                  return (
-                    <ConfidenceInterval>
-                      95% CI: [{ciLower}%, {ciUpper}%]
-                    </ConfidenceInterval>
-                  );
-                })()}
+              </StatItem>
+              
+              <StatItem>
+                <StatLabel>
+                  P-Value
+                  <InfoIcon data-tooltip={
+                    `A p-value of ${formatPValue(pValue)}${pValue < 0.0001 ? ' (extremely small)' : ''} ${
+                      isSignificantResult ? 'indicates statistical significance' : 'is not statistically significant'
+                    } at the ${settings.confidenceLevel}% confidence level. ${
+                      settings.hypothesisType === 'one-sided' 
+                      ? 'For one-sided tests, p-value is always 1.0 when the control outperforms the test variant, as we only test for improvement in one direction.' 
+                      : 'This two-sided test looks for differences in either direction.'
+                    }`
+                  }>?</InfoIcon>
+                </StatLabel>
+                <StatValue>
+                  {formatPValue(pValue)}
+                </StatValue>
+              </StatItem>
+              
+              <StatItem>
+                <StatLabel>
+                  Power
+                  <InfoIcon data-tooltip={
+                    `Statistical power of ${formatPercent(power, DECIMAL_PRECISION.POWER)} represents the probability of detecting a true effect if one exists. Higher values (>80%) indicate a more reliable test.`
+                  }>?</InfoIcon>
+                </StatLabel>
+                <StatValue>{formatPercent(power, DECIMAL_PRECISION.POWER)}</StatValue>
+              </StatItem>
+              
+              <StatItem>
+                <StatLabel>
+                  Z-Score
+                  <InfoIcon data-tooltip={
+                    `The Z-score of ${formatNumber(zScore, DECIMAL_PRECISION.Z_SCORE)} measures how many standard deviations the test variant's conversion rate is from the control. Values above ${settings.confidenceLevel === 95 ? '1.96' : settings.confidenceLevel === 99 ? '2.58' : '1.65'} indicate significance at ${settings.confidenceLevel}% confidence.`
+                  }>?</InfoIcon>
+                </StatLabel>
+                <StatValue>{formatNumber(zScore, DECIMAL_PRECISION.Z_SCORE)}</StatValue>
               </StatItem>
             </StatsGrid>
             
-            <TestStrengthMeter
-              pValue={pValue}
-              confidenceLevel={settings.confidenceLevel}
-              isSignificant={isSignificantResult}
-            />
+            <LazyVisualization priority={9} height={120} minHeight={100}>
+              <TestStrengthMeter
+                pValue={pValue}
+                confidenceLevel={settings.confidenceLevel}
+                isSignificant={isSignificantResult}
+              />
+            </LazyVisualization>
             
             <VariantComparisonContainer>
               <VariantCard variantType={controlType}>
@@ -803,28 +873,34 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
         )}
         
         {analysisMethod === 'bayesian' && (
-          <BayesianAnalysis
-            testData={data}
-            controlKey={controlKey}
-            testKey={testKey}
-          />
+          <LazyVisualization priority={5}>
+            <BayesianAnalysis
+              testData={data}
+              controlKey={controlKey}
+              testKey={testKey}
+            />
+          </LazyVisualization>
         )}
         
         {analysisMethod === 'sequential' && (
-          <SequentialTesting
-            testData={data}
-            controlKey={controlKey}
-            testKey={testKey}
-          />
+          <LazyVisualization priority={5}>
+            <SequentialTesting
+              testData={data}
+              controlKey={controlKey}
+              testKey={testKey}
+            />
+          </LazyVisualization>
         )}
         
-        {analysisMethod === 'segmentation' && (
-          <SegmentAnalysisResults
-            testData={data}
-            segments={segments}
-            controlKey={controlKey}
-            testKey={testKey}
-          />
+        {analysisMethod === 'segmentation' && segments.length > 0 && (
+          <LazyVisualization priority={4}>
+            <SegmentAnalysisResults
+              testData={data}
+              controlKey={controlKey}
+              testKey={testKey}
+              segments={segments}
+            />
+          </LazyVisualization>
         )}
       </DetailsContainer>
     </ResultsContainer>

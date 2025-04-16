@@ -128,7 +128,7 @@ const RateBox = styled.div<{ variantType: string }>`
 `;
 
 const VariantLabel = styled.div<{ variantType: string }>`
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  font-size: 12px;
   color: ${({ theme, variantType }) => {
     switch(variantType) {
       case 'A': return theme.colors.variantA;
@@ -158,6 +158,18 @@ const ComparisonIndicator = styled.div`
   align-items: center;
   justify-content: center;
   padding: 0 ${({ theme }) => theme.spacing.md};
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: ${({ theme }) => theme.colors.border};
+    z-index: 0;
+  }
   
   @media (max-width: 768px) {
     padding: ${({ theme }) => theme.spacing.xs};
@@ -169,23 +181,28 @@ const UpliftContainer = styled.div<{ isPositive: boolean, isSignificant: boolean
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.xs};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.semiBold};
-  color: ${({ theme, isPositive, isSignificant }) => {
-    if (!isSignificant) return theme.colors.text.secondary;
-    return isPositive ? theme.colors.success : theme.colors.error;
-  }};
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
-  opacity: 0.9;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  color: ${({ theme, isPositive }) => 
+    isPositive ? theme.colors.success : theme.colors.error};
+  font-size: 12px;
+  opacity: ${({ isSignificant }) => isSignificant ? 1 : 0.8};
+  background-color: ${({ theme, isPositive }) => 
+    isPositive ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)'};
+  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  min-width: 80px;
+  text-align: center;
+  justify-content: center;
 `;
 
-// Add a utility function to format percentage with optional decimals
-const formatPercentage = (value: number): string => {
-  // If it's a whole number, don't show decimals
-  if (Math.floor(value) === value) {
-    return `${Math.floor(value)}%`;
+// Modify the formatPercentage function to make it more descriptive and directional
+const formatPercentage = (value: number, isTestBetter: boolean, testType: string, controlType: string): string => {
+  const formattedValue = value.toFixed(2);
+  if (isTestBetter) {
+    return `${testType} is better by ${formattedValue}%`;
+  } else {
+    return `${testType} is worse by ${formattedValue}%`;
   }
-  // For numbers with decimals, show at most 2 decimal places
-  return `${value.toFixed(2)}%`;
 };
 
 const ComparisonCard: React.FC<ComparisonCardProps> = ({
@@ -204,8 +221,9 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
   onClick,
   animationDelay = 0,
 }) => {
-  const isPositive = relativeUplift > 0;
-  const isNeutral = relativeUplift === 0;
+  // Update logic to properly determine which variant is better
+  const isTestBetter = testRate > controlRate;
+  const isNeutral = testRate === controlRate;
   
   return (
     <CardContainer 
@@ -228,9 +246,9 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
         </RateBox>
         
         <ComparisonIndicator>
-          <UpliftContainer isPositive={isPositive} isSignificant={isSignificant}>
-            {isNeutral ? '=' : isPositive ? '↑' : '↓'}
-            {formatPercentage(Math.abs(relativeUplift))}
+          <UpliftContainer isPositive={isTestBetter} isSignificant={isSignificant}>
+            {isNeutral ? '=' : (isTestBetter ? '↑' : '↓')}
+            {isNeutral ? 'No change' : formatPercentage(Math.abs(relativeUplift), isTestBetter, testType, controlType)}
           </UpliftContainer>
         </ComparisonIndicator>
         

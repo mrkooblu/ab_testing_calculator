@@ -45,6 +45,7 @@ const TabButton = styled.button<{ isActive: boolean }>`
     isActive ? theme.colors.primary : theme.colors.text.secondary};
   font-weight: ${({ theme, isActive }) => 
     isActive ? theme.typography.fontWeight.semiBold : theme.typography.fontWeight.regular};
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -56,6 +57,10 @@ const TabButton = styled.button<{ isActive: boolean }>`
   svg {
     width: 18px;
     height: 18px;
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
   }
 `;
 
@@ -79,6 +84,7 @@ const DropdownButton = styled.button<{ isOpen: boolean }>`
   border-radius: ${({ theme }) => theme.borderRadius.md};
   color: ${({ theme }) => theme.colors.text.primary};
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -119,6 +125,7 @@ const DropdownItem = styled.button<{ isActive: boolean }>`
     isActive ? theme.colors.primary : theme.colors.text.primary};
   font-weight: ${({ theme, isActive }) => 
     isActive ? theme.typography.fontWeight.semiBold : theme.typography.fontWeight.regular};
+  font-size: 16px;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;

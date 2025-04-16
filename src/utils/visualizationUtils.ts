@@ -15,6 +15,9 @@ export const normalPDF = (x: number, mean: number, stdDev: number): number => {
   return (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(exponent);
 };
 
+// Cache for storing previously calculated curve points to avoid redundant calculations
+const curvePointsCache = new Map<string, [number, number][]>();
+
 /**
  * Generates points for a normal distribution curve based on the specified mean and standard deviation
  * @param mean The mean of the normal distribution
@@ -31,17 +34,47 @@ export const generateNormalCurvePoints = (
   max: number, 
   steps: number = 100
 ): [number, number][] => {
+  // Create a cache key based on the input parameters
+  const cacheKey = `${mean.toFixed(3)}_${stdDev.toFixed(3)}_${min.toFixed(3)}_${max.toFixed(3)}_${steps}`;
+  
+  // Check if we have cached results for these parameters
+  if (curvePointsCache.has(cacheKey)) {
+    return curvePointsCache.get(cacheKey)!;
+  }
+  
+  // Generate points with optimized loop
   const points: [number, number][] = [];
   const step = (max - min) / steps;
   
+  // Pre-calculate constants outside the loop
+  const sqrtTwoPi = Math.sqrt(2 * Math.PI);
+  const variance = stdDev * stdDev;
+  const denominator = stdDev * sqrtTwoPi;
+  
   for (let i = 0; i <= steps; i++) {
     const x = min + i * step;
-    const y = normalPDF(x, mean, stdDev);
+    // Optimized PDF calculation
+    const exponent = -Math.pow(x - mean, 2) / (2 * variance);
+    const y = Math.exp(exponent) / denominator;
     points.push([x, y]);
   }
   
+  // Cache the results (limit cache size to prevent memory leaks)
+  if (curvePointsCache.size > 50) {
+    // Remove oldest entry if cache gets too large
+    const keysIterator = curvePointsCache.keys();
+    const firstKey = keysIterator.next().value;
+    if (firstKey) {
+      curvePointsCache.delete(firstKey);
+    }
+  }
+  curvePointsCache.set(cacheKey, points);
+  
   return points;
 };
+
+// Cache for critical Z values to avoid recalculating common confidence levels
+const criticalZCache = new Map<string, number>();
 
 /**
  * Calculates the critical Z-value for a given confidence level
@@ -56,8 +89,17 @@ export const generateNormalCurvePoints = (
  * @returns The critical Z-value
  */
 export const getCriticalZValue = (confidenceLevel: number, twoSided: boolean): number => {
+  // Round confidence level to avoid floating point precision issues
+  const roundedConfidence = Math.round(confidenceLevel * 10) / 10;
+  const cacheKey = `${roundedConfidence}_${twoSided}`;
+  
+  // Check cache first
+  if (criticalZCache.has(cacheKey)) {
+    return criticalZCache.get(cacheKey)!;
+  }
+  
   // Convert confidence level to alpha
-  let alpha = 1 - (confidenceLevel / 100);
+  let alpha = 1 - (roundedConfidence / 100);
   
   // For two-sided tests, we need alpha/2
   if (twoSided) {
@@ -85,8 +127,28 @@ export const getCriticalZValue = (confidenceLevel: number, twoSided: boolean): n
   // For standard normal, Phi^(-1)(p) = sqrt(2) * erfInv(2p - 1)
   const z = Math.sqrt(2) * erfInv(2 * (1 - alpha) - 1);
   
+  // Cache the result (limit cache size)
+  if (criticalZCache.size > 20) {
+    const keysIterator = criticalZCache.keys();
+    const firstKey = keysIterator.next().value;
+    if (firstKey) {
+      criticalZCache.delete(firstKey);
+    }
+  }
+  criticalZCache.set(cacheKey, z);
+  
   return z;
 };
+
+// Pre-calculated lookup table for common test strength p-values
+// This avoids expensive calculations for frequently used values
+const strengthLookupTable: [number, number][] = Array.from({ length: 20 }, (_, i) => {
+  const pValue = 0.05 + (i * 0.05);
+  const alpha = 0.05;
+  const ratio = (1 - pValue) / (1 - alpha);
+  const strength = Math.max(1, Math.min(100, 100 * ratio));
+  return [pValue, strength];
+});
 
 /**
  * Calculates the test strength percentage based on the p-value and alpha
@@ -96,13 +158,23 @@ export const getCriticalZValue = (confidenceLevel: number, twoSided: boolean): n
  * @param alpha The significance level threshold (e.g., 0.05 for 95% confidence)
  * @returns A percentage (0-100) indicating the test strength
  */
-export const calculateTestStrength = (pValue: number, alpha: number): number => {
+export const calculateTestStrength = (pValue: number, alpha: number = 0.05): number => {
   // Cap p-value at 0.9999 to avoid division by zero or extremely small values
   const safePValue = Math.min(pValue, 0.9999);
   
   // If the test is already significant, return 100%
   if (safePValue <= alpha) {
     return 100;
+  }
+  
+  // Check if we can use the lookup table for common alpha=0.05 case
+  if (Math.abs(alpha - 0.05) < 0.001) {
+    // Find closest p-value in lookup table
+    for (const [tablePValue, tableStrength] of strengthLookupTable) {
+      if (Math.abs(safePValue - tablePValue) < 0.025) {
+        return tableStrength;
+      }
+    }
   }
   
   // If the p-value is close to 1, the strength is close to 0

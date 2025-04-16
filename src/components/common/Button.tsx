@@ -12,6 +12,10 @@ interface ButtonProps {
   onClick?: () => void;
   type?: 'button' | 'submit' | 'reset';
   children: React.ReactNode;
+  tabIndex?: number;
+  'aria-label'?: string;
+  'aria-controls'?: string;
+  'aria-expanded'?: boolean;
 }
 
 const getButtonStyles = (variant: ButtonVariant, theme: any) => {
@@ -91,25 +95,60 @@ const StyledButton = styled.button<ButtonProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: ${({ theme, size }) => {
+    switch (size) {
+      case 'small': return `${theme.spacing.xs} ${theme.spacing.sm}`;
+      case 'large': return `${theme.spacing.md} ${theme.spacing.lg}`;
+      default: return `${theme.spacing.sm} ${theme.spacing.md}`;
+    }
+  }};
+  font-size: ${({ theme, size }) => {
+    switch (size) {
+      case 'small': return theme.typography.fontSize.sm;
+      case 'large': return theme.typography.fontSize.lg;
+      default: return theme.typography.fontSize.md;
+    }
+  }};
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme, variant }) => 
+    variant === 'outline' ? theme.colors.primary : '#fff'};
+  background-color: ${({ theme, variant }) => 
+    variant === 'outline' ? 'transparent' : theme.colors.primary};
+  border: ${({ theme, variant }) => 
+    variant === 'outline' ? `1px solid ${theme.colors.primary}` : 'none'};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  transition: all ${({ theme }) => theme.transitions.short};
   cursor: pointer;
-  white-space: nowrap;
+  transition: ${({ theme }) => theme.focus.transitionProperty} ${({ theme }) => theme.focus.transitionDuration} ${({ theme }) => theme.focus.transitionTimingFunction};
+  text-decoration: none;
   
-  ${({ variant = 'primary', theme }) => getButtonStyles(variant, theme)}
-  ${({ size = 'medium', theme }) => getButtonSizeStyles(size, theme)}
-  ${({ fullWidth }) => fullWidth && 'width: 100%;'}
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  &:hover {
+    background-color: ${({ theme, variant }) => 
+      variant === 'outline' ? 'rgba(46, 92, 229, 0.05)' : '#2854cf'};
   }
   
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+    box-shadow: ${({ theme }) => theme.focus.ring};
   }
+  
+  &:focus-visible {
+    outline: ${({ theme }) => theme.focus.outline};
+    outline-offset: 2px;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  ${({ fullWidth }) => fullWidth && `
+    width: 100%;
+  `}
 `;
 
 const Button: React.FC<ButtonProps> = ({
@@ -120,6 +159,10 @@ const Button: React.FC<ButtonProps> = ({
   type = 'button',
   onClick,
   children,
+  tabIndex,
+  'aria-label': ariaLabel,
+  'aria-controls': ariaControls,
+  'aria-expanded': ariaExpanded,
 }) => {
   return (
     <StyledButton
@@ -129,6 +172,10 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled}
       type={type}
       onClick={onClick}
+      tabIndex={tabIndex}
+      aria-label={ariaLabel}
+      aria-controls={ariaControls}
+      aria-expanded={ariaExpanded}
     >
       {children}
     </StyledButton>

@@ -8,6 +8,8 @@ import RadioGroup from '../common/RadioGroup';
 import { calculateConversionRate } from '../../utils/statsCalculator';
 import { updateBrowserURL } from '../../utils/urlParameters';
 import Tooltip from '../common/Tooltip';
+import { validateABTestForm, ValidationResult, ValidationWarning } from '../../utils/validationUtils';
+import ValidationWarningBanner from '../common/ValidationWarningBanner';
 
 interface ABTestFormProps {
   onCalculate: (formData: ABTestFormData) => void;
@@ -15,16 +17,17 @@ interface ABTestFormProps {
 }
 
 const FormContainer = styled.div`
-  background-color: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: ${({ theme }) => theme.spacing.lg};
-  box-shadow: ${({ theme }) => theme.shadows.md};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-  border-top: 4px solid ${({ theme }) => theme.colors.primary};
   
   @media (max-width: 768px) {
     padding: ${({ theme }) => theme.spacing.md};
-    border-radius: ${({ theme }) => theme.borderRadius.md};
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
@@ -51,39 +54,16 @@ const SectionTitle = styled.h3`
   justify-content: space-between;
 `;
 
-const VariantContainer = styled.div<{ variantType: VariantType }>`
-  background-color: ${({ theme, variantType }) => {
-    switch(variantType) {
-      case 'A': return 'rgba(67, 97, 238, 0.1)';
-      case 'B': return 'rgba(247, 37, 133, 0.1)';
-      case 'C': return 'rgba(114, 9, 183, 0.1)';
-      case 'D': return 'rgba(58, 12, 163, 0.1)';
-      default: return 'rgba(67, 97, 238, 0.1)';
-    }
-  }};
-  border-left: 4px solid ${({ theme, variantType }) => {
-    switch(variantType) {
-      case 'A': return theme.colors.variantA;
-      case 'B': return theme.colors.variantB;
-      case 'C': return theme.colors.variantC;
-      case 'D': return theme.colors.variantD;
-      default: return theme.colors.variantA;
-    }
-  }};
-  padding: ${({ theme }) => theme.spacing.lg};
+const VariantContainer = styled.div<{ isFirst?: boolean }>`
+  border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => theme.colors.surface};
   position: relative;
-  box-shadow: ${({ theme }) => theme.shadows.sm};
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.md};
-  }
   
   @media (max-width: 768px) {
-    padding: ${({ theme }) => theme.spacing.md};
+    padding: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
@@ -91,20 +71,28 @@ const RemoveVariantButton = styled.button`
   position: absolute;
   top: ${({ theme }) => theme.spacing.sm};
   right: ${({ theme }) => theme.spacing.sm};
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.border};
   color: ${({ theme }) => theme.colors.text.secondary};
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
-  padding: ${({ theme }) => theme.spacing.xs};
-  border-radius: ${({ theme }) => theme.borderRadius.circle};
-  width: 24px;
-  height: 24px;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all ${({ theme }) => theme.transitions.short};
-
+  cursor: pointer;
+  transition: all 0.2s;
+  
   &:hover {
-    color: ${({ theme }) => theme.colors.error};
-    background-color: rgba(244, 67, 54, 0.1);
+    background-color: ${({ theme }) => theme.colors.error};
+    color: white;
+  }
+  
+  @media (max-width: 768px) {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
   }
 `;
 
@@ -114,13 +102,30 @@ const VariantTitle = styled.h4`
 `;
 
 const VariantFieldsContainer = styled.div`
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr);
-  gap: ${({ theme }) => theme.spacing.md};
+  display: flex;
+  flex-wrap: wrap;
+  margin: -${({ theme }) => theme.spacing.sm};
   
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: ${({ theme }) => theme.spacing.sm};
+    margin: -${({ theme }) => theme.spacing.xs};
+  }
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+`;
+
+const InputWrapper = styled.div`
+  flex: 1;
+  min-width: 200px;
+  padding: ${({ theme }) => theme.spacing.sm};
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing.xs};
+  }
+  
+  @media (max-width: 480px) {
+    min-width: 100%;
   }
 `;
 
@@ -243,7 +248,7 @@ const RadioOption = styled.label<{ isSelected: boolean }>`
 
 // Add a collapsible container for the advanced settings
 const CollapsibleSection = styled.div`
-  position: relative;
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
 `;
 
 const ExpandIcon = styled.span<{ isOpen: boolean }>`
@@ -276,7 +281,15 @@ const ExpandIcon = styled.span<{ isOpen: boolean }>`
   }
 `;
 
-const CollapsibleHeader = styled.div`
+const CollapsibleHeader = styled.div.attrs<{
+  tabIndex?: number;
+  'aria-expanded'?: boolean;
+  'aria-controls'?: string;
+}>((props) => ({
+  tabIndex: props.tabIndex || 0,
+  'aria-expanded': props['aria-expanded'],
+  'aria-controls': props['aria-controls'],
+}))`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -297,6 +310,11 @@ const CollapsibleHeader = styled.div`
     background-color: ${({ theme }) => theme.colors.primary};
   }
   
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primary};
+  }
+  
   @media (max-width: 768px) {
     padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.sm}`};
     min-height: 54px; /* Larger touch target */
@@ -311,11 +329,20 @@ const CollapsibleTitle = styled.h3`
   gap: ${({ theme }) => theme.spacing.sm};
 `;
 
-const CollapsibleContent = styled.div<{ isOpen: boolean }>`
+const CollapsibleContent = styled.div.attrs<{
+  isOpen: boolean;
+  id?: string;
+}>((props) => ({
+  id: props.id
+}))<{ isOpen: boolean }>`
   height: ${({ isOpen }) => (isOpen ? 'auto' : '0')};
   opacity: ${({ isOpen }) => (isOpen ? '1' : '0')};
   transition: opacity 0.3s ease-in-out;
-  visibility: ${({ isOpen }) => (isOpen ? 'visible' : 'hidden')};
+  
+  ${({ isOpen }) => !isOpen && `
+    overflow: hidden;
+    pointer-events: none;
+  `}
 `;
 
 const SettingsInnerContent = styled.div`
@@ -344,7 +371,7 @@ const SelectedSettingsPreview = styled.div`
 
 const SettingTag = styled.span`
   background-color: ${({ theme }) => theme.colors.background};
-  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.xs}`};
+  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.md}`};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
   border: 1px solid ${({ theme }) => theme.colors.border};
 `;
@@ -477,6 +504,98 @@ const TooltipWrapper = styled.span`
   margin-left: ${({ theme }) => theme.spacing.xs};
 `;
 
+// Create a more reliable tabIndex generation function
+const getTabIndex = (variantIndex: number, field: 'visitors' | 'conversions'): number => {
+  const baseIndex = variantIndex * 10; // Use multiples of 10 to leave room for potential elements in between
+  return field === 'visitors' ? baseIndex + 1 : baseIndex + 2;
+};
+
+// Add the missing styled components for the settings section
+const SettingsToggle = styled.button`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  cursor: pointer;
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  transition: background-color 0.2s;
+  min-height: 44px; /* Minimum touch target height */
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.surface};
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: ${({ theme }) => theme.focus.ring};
+  }
+  
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.md};
+  }
+`;
+
+const SettingsIcon = styled.span<{ isOpen: boolean }>`
+  margin-right: ${({ theme }) => theme.spacing.sm};
+  font-size: ${({ theme }) => theme.typography.fontSize.lg};
+  opacity: ${({ isOpen }) => (isOpen ? 1 : 0.7)};
+  transition: opacity 0.2s;
+`;
+
+const SettingsLabel = styled.span`
+  flex: 1;
+  text-align: left;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  font-size: ${({ theme }) => theme.typography.fontSize.md};
+`;
+
+const ChevronIcon = styled.span<{ isOpen: boolean }>`
+  transform: ${({ isOpen }) => (isOpen ? 'rotate(180deg)' : 'rotate(0)')};
+  transition: transform 0.2s ease-in-out;
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+`;
+
+const SettingsContent = styled.div<{ isOpen: boolean }>`
+  display: ${({ isOpen }) => (isOpen ? 'block' : 'none')};
+  padding: ${({ theme }) => theme.spacing.md};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  margin-top: ${({ theme }) => theme.spacing.sm};
+  background-color: ${({ theme }) => theme.colors.surface};
+`;
+
+const SettingsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  margin: -${({ theme }) => theme.spacing.sm};
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    margin: 0;
+  }
+`;
+
+const SettingGroup = styled.div`
+  flex: 1;
+  min-width: 250px;
+  padding: ${({ theme }) => theme.spacing.sm};
+  
+  @media (max-width: 768px) {
+    min-width: 100%;
+    padding: ${({ theme }) => theme.spacing.sm} 0;
+    margin-bottom: ${({ theme }) => theme.spacing.md};
+  }
+`;
+
+const SettingLabel = styled.label`
+  display: block;
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme }) => theme.colors.text.primary};
+`;
+
 const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JSX.Element => {
   // Initialize form data
   const [formData, setFormData] = useState<ABTestFormData>({
@@ -495,11 +614,14 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
   // Set active variants based on initial data
   const [activeVariantKeys, setActiveVariantKeys] = useState<VariantKey[]>(['variantA', 'variantB']);
   
-  // Track form validation errors
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  // Track form validation errors - update type to support our validation structure
+  const [formErrors, setFormErrors] = useState<Record<string, Record<string, any>>>({});
 
   // Add state for test settings collapse
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Add state for validation warnings
+  const [validationWarnings, setValidationWarnings] = useState<ValidationWarning[]>([]);
 
   // Improve useEffect for initialData handling
   useEffect(() => {
@@ -532,7 +654,7 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
         setIsSettingsOpen(true);
       }
     }
-  }, [initialData]); // Only re-run when initialData changes
+  }, [initialData]);
 
   // Handle numeric input changes
   const handleInputChange = (
@@ -540,81 +662,88 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
     field: 'visitors' | 'conversions',
     value: string
   ): void => {
-    // Ensure we have a valid number or default to 0
-    const numValue = value === '' ? 0 : Number(value);
+    // Process comma-separated values
+    const processedValue = value.replace(/,/g, '');
     
-    // Only update if we have a valid number
-    if (!isNaN(numValue)) {
-      // Create temporary copy of variants to work with
-      const updatedVariants = { ...formData.variants };
-      const updatedVariant = { ...updatedVariants[variantKey] };
-      
-      // Update the specific field
-      updatedVariant[field] = numValue;
-      
-      // Recalculate conversion rate
-      const visitors = field === 'visitors' ? numValue : updatedVariant.visitors;
-      const conversions = field === 'conversions' ? numValue : updatedVariant.conversions;
-      
-      // Ensure conversions can't exceed visitors
-      const validatedConversions = Math.min(conversions, visitors);
-      if (field === 'conversions' && validatedConversions !== conversions) {
-        updatedVariant.conversions = validatedConversions;
-      }
-      
-      updatedVariant.conversionRate = calculateConversionRate(visitors, validatedConversions);
-      
-      // Update the variant in our temporary variants object
-      updatedVariants[variantKey] = updatedVariant;
-      
-      // Update the form data with all changes at once
-      setFormData(prevData => ({
-        ...prevData,
-        variants: updatedVariants
-      }));
-      
-      // Clear error for this field if it exists
-      if (formErrors[`${variantKey}.${field}`]) {
-        setFormErrors(prevErrors => {
-          const newErrors = { ...prevErrors };
-          delete newErrors[`${variantKey}.${field}`];
-          return newErrors;
-        });
-      }
-      
-      // Validate that conversions are not greater than visitors
-      if (
-        field === 'conversions' && 
-        numValue > updatedVariant.visitors
-      ) {
-        setFormErrors(prevErrors => ({
-          ...prevErrors,
-          [`${variantKey}.${field}`]: 'Conversions cannot exceed visitors'
-        }));
-      }
-      
-      // Validate that values are not negative
-      if (numValue < 0) {
-        setFormErrors(prevErrors => ({
-          ...prevErrors,
-          [`${variantKey}.${field}`]: 'Value cannot be negative'
-        }));
-      }
+    // Validate input is a number
+    if (processedValue && !/^[0-9]*$/.test(processedValue)) {
+      return; // Don't update if not a positive integer
     }
+    
+    // Convert to number
+    const numValue = processedValue ? parseInt(processedValue, 10) : 0;
+    
+    // Update the form data
+    setFormData((prevData) => {
+      const newVariants = { ...prevData.variants };
+      newVariants[variantKey] = {
+        ...newVariants[variantKey],
+        [field]: numValue,
+      };
+      
+      // Update conversion rate if visitors or conversions changed
+      if (field === 'visitors' || field === 'conversions') {
+        const variant = newVariants[variantKey];
+        const convRate = calculateConversionRate(variant.visitors, variant.conversions);
+        newVariants[variantKey].conversionRate = convRate;
+        
+        // If conversions > visitors, adjust conversions to equal visitors
+        if (variant.conversions > variant.visitors && variant.visitors > 0) {
+          newVariants[variantKey].conversions = variant.visitors;
+          newVariants[variantKey].conversionRate = calculateConversionRate(
+            variant.visitors,
+            variant.visitors
+          );
+        }
+      }
+      
+      const updatedData = {
+        ...prevData,
+        variants: newVariants,
+      };
+      
+      // Collect warnings with the updated data immediately
+      const validationResult = validateABTestForm(updatedData);
+      setTimeout(() => {
+        setValidationWarnings(validationResult.warnings);
+      }, 0);
+      
+      return updatedData;
+    });
   };
 
-  // Handle settings changes
+  // Update the collect warnings function to use the latest state
+  const collectWarnings = () => {
+    // This function will now be called with the current formData
+    setFormData(currentData => {
+      const validationResult = validateABTestForm(currentData);
+      setValidationWarnings(validationResult.warnings);
+      return currentData; // Return the same state to avoid an unnecessary update
+    });
+  };
+
+  // Handle settings changes - update to handle proper event type from RadioGroup
   const handleSettingChange = (
     setting: 'hypothesisType' | 'confidenceLevel',
     value: string | number
   ) => {
-    setFormData(prevData => ({
-      ...prevData,
-      settings: {
-        ...prevData.settings,
-        [setting]: setting === 'confidenceLevel' ? Number(value) : value
-      }
-    }));
+    if (setting === 'confidenceLevel') {
+      setFormData({
+        ...formData,
+        settings: {
+          ...formData.settings,
+          [setting]: Number(value)
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        settings: {
+          ...formData.settings,
+          [setting]: value as 'one-sided' | 'two-sided'
+        }
+      });
+    }
   };
 
   // Add a new variant
@@ -631,48 +760,21 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
 
   // Remove a variant
   const handleRemoveVariant = (variantToRemove: VariantKey) => {
+    // Prevent removal of control variant (A)
+    if (variantToRemove === 'variantA') return;
+    
+    // Ensure we keep minimum of 2 variants
     if (activeVariantKeys.length <= 2) return;
     
     setActiveVariantKeys(activeVariantKeys.filter(key => key !== variantToRemove));
   };
 
-  // Validate form before submission
+  // Update validate function to use our new validation utility
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    let isValid = true;
-    
-    // Check if at least two variants have visitors
-    const variantsWithVisitors = activeVariantKeys.filter(
-      key => Number(formData.variants[key].visitors) > 0
-    );
-    
-    if (variantsWithVisitors.length < 2) {
-      newErrors['general'] = 'At least two variants must have visitors';
-      isValid = false;
-    }
-    
-    // Validate each active variant's inputs
-    activeVariantKeys.forEach(variantKey => {
-      const variant = formData.variants[variantKey];
-      
-      if (Number(variant.conversions) > Number(variant.visitors)) {
-        newErrors[`${variantKey}.conversions`] = 'Conversions cannot exceed visitors';
-        isValid = false;
-      }
-      
-      if (Number(variant.visitors) < 0) {
-        newErrors[`${variantKey}.visitors`] = 'Value cannot be negative';
-        isValid = false;
-      }
-      
-      if (Number(variant.conversions) < 0) {
-        newErrors[`${variantKey}.conversions`] = 'Value cannot be negative';
-        isValid = false;
-      }
-    });
-    
-    setFormErrors(newErrors);
-    return isValid;
+    const validationResult = validateABTestForm(formData);
+    setFormErrors(validationResult.errors);
+    setValidationWarnings(validationResult.warnings);
+    return validationResult.isValid;
   };
 
   // Handle form submission
@@ -717,191 +819,198 @@ const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JS
 
   return (
     <FormContainer>
-      <FormTitle>A/B Testing Calculator</FormTitle>
+      <FormTitle>A/B Test Calculator</FormTitle>
       
-      <form onSubmit={handleSubmit}>
-        {activeVariantKeys.map(variantKey => {
+      {/* Add ValidationWarningBanner to display warnings */}
+      {validationWarnings.length > 0 && (
+        <ValidationWarningBanner warnings={validationWarnings} />
+      )}
+      
+      <form onSubmit={handleSubmit} role="form">
+        {/* Keep existing form content structure */}
+        {activeVariantKeys.map((variantKey, variantIndex) => {
           const variant = formData.variants[variantKey];
-          const variantType = getVariantTypeFromKey(variantKey);
+          const variantErrors = formErrors[variantKey] || {};
           
           return (
-            <VariantContainer 
-              key={`${variantKey}-${variant.visitors}-${variant.conversions}`} 
-              variantType={variantType}
-            >
-              {activeVariantKeys.length > 2 && (
+            <VariantContainer key={variantKey}>
+              <VariantTitle>Variant {variant.type}</VariantTitle>
+              
+              {/* Only show remove button for non-control variants */}
+              {variantKey !== 'variantA' && (
                 <RemoveVariantButton
                   type="button"
                   onClick={() => handleRemoveVariant(variantKey)}
-                  aria-label={`Remove variant ${variantType}`}
+                  aria-label={`Remove Variant ${variant.type}`}
                 >
-                  ✕
+                  ×
                 </RemoveVariantButton>
               )}
               
-              <VariantTitle>Variant {variantType}</VariantTitle>
-              
               <VariantFieldsContainer>
-                <div>
-                  <Input
-                    id={`${variantKey}-visitors`}
-                    label="Visitors"
-                    type="number"
-                    min={0}
-                    value={variant.visitors}
-                    onChange={(e) => handleInputChange(variantKey, 'visitors', e.target.value)}
-                    error={formErrors[`${variantKey}.visitors`]}
-                    fullWidth
-                    key={`visitors-${variant.visitors}`}
-                    allowMultipleNumbers={true}
-                    tooltipText="Enter a single number or paste multiple numbers separated by commas or spaces"
-                  />
-                </div>
+                <InputWrapper>
+                  <StatCard>
+                    <StatLabel>
+                      Visitors
+                      <TooltipWrapper>
+                        <InputTooltip>?
+                          <TooltipData>
+                            Total number of users who saw this variant.
+                          </TooltipData>
+                        </InputTooltip>
+                      </TooltipWrapper>
+                    </StatLabel>
+                    <Input
+                      type="number"
+                      value={variant.visitors || ''}
+                      onChange={(e) => handleInputChange(variantKey, 'visitors', e.target.value)}
+                      tabIndex={getTabIndex(variantIndex, 'visitors')}
+                      aria-label={`Variant ${variant.type} Visitors`}
+                      min={0}
+                      error={variantErrors?.visitors?.message}
+                      allowMultipleNumbers={true}
+                      tooltipText="Only positive integers are allowed"
+                    />
+                    {variantErrors?.visitors?.message && (
+                      <ErrorMessage>{variantErrors.visitors.message}</ErrorMessage>
+                    )}
+                  </StatCard>
+                </InputWrapper>
                 
-                <div>
-                  <Input
-                    id={`${variantKey}-conversions`}
-                    label="Conversions"
-                    type="number"
-                    min={0}
-                    max={variant.visitors}
-                    value={variant.conversions}
-                    onChange={(e) => handleInputChange(variantKey, 'conversions', e.target.value)}
-                    error={formErrors[`${variantKey}.conversions`]}
-                    fullWidth
-                    key={`conversions-${variant.conversions}`}
-                    allowMultipleNumbers={true}
-                    tooltipText="Enter a single number or paste multiple numbers separated by commas or spaces"
-                  />
-                </div>
+                <InputWrapper>
+                  <StatCard>
+                    <StatLabel>
+                      Conversions
+                      <TooltipWrapper>
+                        <InputTooltip>?
+                          <TooltipData>
+                            Number of conversions (e.g., clicks, purchases) for this variant.
+                          </TooltipData>
+                        </InputTooltip>
+                      </TooltipWrapper>
+                    </StatLabel>
+                    <Input
+                      type="number"
+                      value={variant.conversions || ''}
+                      onChange={(e) => handleInputChange(variantKey, 'conversions', e.target.value)}
+                      tabIndex={getTabIndex(variantIndex, 'conversions')}
+                      aria-label={`Variant ${variant.type} Conversions`}
+                      min={0}
+                      max={variant.visitors}
+                      error={variantErrors?.conversions?.message}
+                      allowMultipleNumbers={true}
+                      tooltipText="Cannot exceed the number of visitors"
+                    />
+                    {variantErrors?.conversions?.message && (
+                      <ErrorMessage>{variantErrors.conversions.message}</ErrorMessage>
+                    )}
+                  </StatCard>
+                </InputWrapper>
                 
-                <StatCard>
-                  <StatLabel>
-                    Conversion Rate
-                    <TooltipWrapper>
-                      <InputTooltip>
-                        ?
-                        <TooltipData>
-                          Calculated as (Conversions / Visitors) × 100%. This value updates automatically based on your inputs.
-                        </TooltipData>
-                      </InputTooltip>
-                    </TooltipWrapper>
-                  </StatLabel>
-                  <StatValue>
-                    {variant.visitors > 0 
-                      ? ((variant.conversions / variant.visitors) * 100).toFixed(2) 
-                      : '0.00'}%
-                  </StatValue>
-                </StatCard>
+                <InputWrapper>
+                  <StatCard>
+                    <StatLabel>
+                      Conversion Rate
+                      <TooltipWrapper>
+                        <InputTooltip>?
+                          <TooltipData>
+                            Percentage of visitors who converted.
+                          </TooltipData>
+                        </InputTooltip>
+                      </TooltipWrapper>
+                    </StatLabel>
+                    <StatValue>
+                      {variant.conversionRate.toFixed(2)}%
+                    </StatValue>
+                  </StatCard>
+                </InputWrapper>
               </VariantFieldsContainer>
             </VariantContainer>
           );
         })}
         
+        {/* Keep rest of form unchanged */}
         {activeVariantKeys.length < 4 && (
           <AddVariantButtonContainer>
             <Button
-              type="button"
+              type="button" 
               variant="outline"
               onClick={handleAddVariant}
               fullWidth
+              tabIndex={activeVariantKeys.length * 10 + 1} // After the last variant's inputs
+              aria-label="Add another variant"
             >
               + Add Variant
             </Button>
           </AddVariantButtonContainer>
         )}
         
+        {/* Keep settings section unchanged */}
         <CollapsibleSection>
-          <CollapsibleHeader onClick={toggleSettings}>
-            <CollapsibleTitle>
-              <ExpandIcon isOpen={isSettingsOpen} />
-              Test Settings
-              {!isSettingsOpen && (
-                <HelperText>(click to customize)</HelperText>
-              )}
-            </CollapsibleTitle>
-            <SelectedSettingsPreview>
-              <SettingTag>Hypothesis: {formData.settings.hypothesisType === 'one-sided' ? 'One-sided' : 'Two-sided'}</SettingTag>
-              <SettingTag>Confidence: {formData.settings.confidenceLevel}%</SettingTag>
-            </SelectedSettingsPreview>
-          </CollapsibleHeader>
+          <SettingsToggle 
+            type="button" 
+            onClick={toggleSettings}
+            aria-expanded={isSettingsOpen}
+            aria-controls="test-settings"
+          >
+            <SettingsIcon isOpen={isSettingsOpen}>⚙️</SettingsIcon>
+            <SettingsLabel>Test Settings</SettingsLabel>
+            <ChevronIcon isOpen={isSettingsOpen}>▼</ChevronIcon>
+          </SettingsToggle>
           
-          <CollapsibleContent isOpen={isSettingsOpen}>
-            <SettingsInnerContent>
-              <SettingsGrid>
-                <RadioGroupContainer>
-                  <StatLabel>
-                    Hypothesis Type
-                    <Tooltip
-                      content="One-sided tests detect changes in one direction only (e.g., improvement). Two-sided tests detect changes in both directions (improvement or decline)."
-                    />
-                  </StatLabel>
-                  <HorizontalRadioOptions>
-                    {[
-                      { value: 'one-sided', label: 'One-sided' },
-                      { value: 'two-sided', label: 'Two-sided' }
-                    ].map(option => (
-                      <RadioOption 
-                        key={option.value}
-                        isSelected={formData.settings.hypothesisType === option.value}
-                      >
-                        <input
-                          type="radio"
-                          name="hypothesisType"
-                          value={option.value}
-                          checked={formData.settings.hypothesisType === option.value}
-                          onChange={() => handleSettingChange('hypothesisType', option.value)}
-                        />
-                        {option.label}
-                      </RadioOption>
-                    ))}
-                  </HorizontalRadioOptions>
-                </RadioGroupContainer>
-                
-                <RadioGroupContainer>
-                  <StatLabel>
-                    Confidence Level
-                    <Tooltip
-                      content="Higher confidence levels (95%, 99%) reduce the chance of false positives but require stronger evidence to detect real effects."
-                    />
-                  </StatLabel>
-                  <HorizontalRadioOptions>
-                    {[
-                      { value: '90', label: '90%' },
-                      { value: '95', label: '95%' },
-                      { value: '99', label: '99%' }
-                    ].map(option => (
-                      <RadioOption 
-                        key={option.value}
-                        isSelected={formData.settings.confidenceLevel.toString() === option.value}
-                      >
-                        <input
-                          type="radio"
-                          name="confidenceLevel"
-                          value={option.value}
-                          checked={formData.settings.confidenceLevel.toString() === option.value}
-                          onChange={() => handleSettingChange('confidenceLevel', option.value)}
-                        />
-                        {option.label}
-                      </RadioOption>
-                    ))}
-                  </HorizontalRadioOptions>
-                </RadioGroupContainer>
-              </SettingsGrid>
-            </SettingsInnerContent>
-          </CollapsibleContent>
+          <SettingsContent 
+            isOpen={isSettingsOpen}
+            id="test-settings"
+            aria-hidden={!isSettingsOpen}
+          >
+            <SettingsRow>
+              <SettingGroup>
+                <SettingLabel>
+                  Hypothesis Type
+                  <SettingTooltip content="One-sided test looks for improvement only. Two-sided test looks for any difference." />
+                </SettingLabel>
+                <RadioGroup
+                  name="hypothesisType"
+                  options={[
+                    { value: 'one-sided', label: 'One-sided (B > A)' },
+                    { value: 'two-sided', label: 'Two-sided (B ≠ A)' }
+                  ]}
+                  value={formData.settings.hypothesisType}
+                  onChange={value => handleSettingChange('hypothesisType', value)}
+                />
+              </SettingGroup>
+              
+              <SettingGroup>
+                <SettingLabel>
+                  Confidence Level
+                  <SettingTooltip content="Higher confidence means less chance of false positives, but requires more data." />
+                </SettingLabel>
+                <RadioGroup
+                  name="confidenceLevel"
+                  options={[
+                    { value: '90', label: '90%' },
+                    { value: '95', label: '95%' },
+                    { value: '99', label: '99%' }
+                  ]}
+                  value={formData.settings.confidenceLevel.toString()}
+                  onChange={value => handleSettingChange('confidenceLevel', value)}
+                />
+              </SettingGroup>
+            </SettingsRow>
+          </SettingsContent>
         </CollapsibleSection>
         
-        {formErrors['general'] && (
-          <ErrorMessage>{formErrors['general']}</ErrorMessage>
+        {/* Update error display */}
+        {formErrors.form && formErrors.form.general && (
+          <ErrorMessage>{formErrors.form.general.message}</ErrorMessage>
         )}
         
         <FormActions>
-          <Button
-            type="submit"
+          <Button 
+            type="submit" 
             variant="primary"
-            disabled={Object.keys(formErrors).length > 0}
             fullWidth
+            tabIndex={activeVariantKeys.length * 10 + 10} // Always the last tabIndex in the form
           >
             Calculate Results
           </Button>

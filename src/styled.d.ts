@@ -19,7 +19,7 @@ declare module 'styled-components' {
         primary: string;
         secondary: string;
         disabled: string;
-        hint: string;
+        inverse: string;
       };
       border: string;
       divider: string;
@@ -30,6 +30,7 @@ declare module 'styled-components' {
         border: string;
         link: string;
       };
+      focus: string;
     };
     typography: {
       fontFamily: string;
@@ -95,11 +96,20 @@ declare module 'styled-components' {
       long: string;
     };
     breakpoints: {
+      xxs: string;
       xs: string;
       sm: string;
       md: string;
       lg: string;
       xl: string;
+      xxl: string;
+    };
+    focus: {
+      ring: string;
+      outline: string;
+      transitionProperty: string;
+      transitionDuration: string;
+      transitionTimingFunction: string;
     };
   }
 } 

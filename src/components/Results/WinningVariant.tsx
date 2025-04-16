@@ -61,6 +61,10 @@ const WinningVariantContainer = styled.div`
     flex-direction: column;
     padding: ${({ theme }) => theme.spacing.md};
   }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding: ${({ theme }) => theme.spacing.sm};
+  }
 `;
 
 const VariantInfoColumn = styled.div`
@@ -88,11 +92,19 @@ const MetricsColumn = styled.div`
     padding-left: 0;
     padding-top: ${({ theme }) => theme.spacing.md};
   }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding-top: ${({ theme }) => theme.spacing.sm};
+  }
 `;
 
 const MetricsRow = styled.div`
   display: flex;
   align-items: center;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    justify-content: flex-start; // Align items to the start on mobile
+  }
 `;
 
 const WinnerLabel = styled.div`
@@ -188,6 +200,18 @@ const CircleProgress = styled.div<{ percentage: number, confidence: number }>`
   border-radius: 50%;
   background: #f0f0f0;
   margin-right: ${({ theme }) => theme.spacing.md};
+  flex-shrink: 0; // Prevent the circle from shrinking
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    width: 64px;
+    height: 64px;
+    margin-right: ${({ theme }) => theme.spacing.sm};
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    width: 60px;
+    height: 60px;
+  }
   
   &:before {
     content: '';
@@ -226,17 +250,34 @@ const ThresholdMarker = styled.div<{ threshold: number }>`
   top: 0;
   left: 50%;
   transform-origin: bottom center;
-  transform: translateX(-50%) rotate(${({ threshold }) => (threshold / 100) * 360}deg) translateY(-34px);
+  transform: translateX(-50%) rotate(${({ threshold }) => (threshold / 100) * 360}deg) translateY(-40px);
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    height: 8px;
+    transform: translateX(-50%) rotate(${({ threshold }) => (threshold / 100) * 360}deg) translateY(-32px);
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    height: 6px;
+    transform: translateX(-50%) rotate(${({ threshold }) => (threshold / 100) * 360}deg) translateY(-30px);
+  }
   
   &:after {
     content: '';
     position: absolute;
     top: -3px;
     left: -2px;
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background-color: #333;
+    
+    @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+      width: 5px;
+      height: 5px;
+      top: -2px;
+      left: -1px;
+    }
   }
 `;
 
@@ -253,11 +294,24 @@ const CircleText = styled.div<{ confidence: number }>`
   font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   color: ${({ confidence }) => getConfidenceColor(confidence)};
   z-index: 2;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: 16px;
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    font-size: 14px;
+  }
 `;
 
 const ConfidenceIndicator = styled.div`
   display: flex;
   flex-direction: column;
+  flex: 1;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  }
 `;
 
 const ConfidenceLabel = styled.span`
@@ -265,85 +319,89 @@ const ConfidenceLabel = styled.span`
   color: #000000;
 `;
 
-const ConfidenceExplanation = styled.div`
+const ConfidenceExplanation = styled.p`
+  margin: 0;
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   color: ${({ theme }) => theme.colors.text.secondary};
-  margin-top: ${({ theme }) => theme.spacing.xs};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: ${({ theme }) => theme.typography.fontSize.xs};
+    line-height: 1.3;
+  }
 `;
 
 // Action recommendation banner
 const RecommendationBanner = styled.div<{ confidence: number }>`
-  background-color: ${({ confidence }) => 
-    confidence >= 95 ? '#E8F5E9' :  // High confidence - green background
-    confidence >= 80 ? '#FFF8E1' :  // Medium confidence - yellow background
-    '#FFEBEE'                       // Low confidence - red background
-  };
-  border-left: 4px solid ${({ confidence }) => 
-    confidence >= 95 ? '#4CAF50' :  // High confidence - green border
-    confidence >= 80 ? '#FF9800' :  // Medium confidence - yellow border
-    '#F44336'                       // Low confidence - red border
-  };
-  padding: ${({ theme }) => theme.spacing.sm};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
   margin-top: ${({ theme }) => theme.spacing.md};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  padding: ${({ theme }) => theme.spacing.sm};
+  background-color: ${({ confidence }) => {
+    if (confidence >= 90) return 'rgba(76, 175, 80, 0.1)';
+    if (confidence >= 80) return 'rgba(255, 152, 0, 0.1)';
+    return 'rgba(244, 67, 54, 0.1)';
+  }};
+  border-left: 3px solid ${({ confidence }) => getConfidenceColor(confidence)};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    margin-top: ${({ theme }) => theme.spacing.sm};
+    padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
+  }
 `;
 
-const RecommendationText = styled.span`
+const RecommendationText = styled.div`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.text.primary};
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: ${({ theme }) => theme.typography.fontSize.xs};
+    line-height: 1.3;
+  }
 `;
 
 // Confetti element for celebration
 const Confetti = styled.div<{ delay: number }>`
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background-color: ${() => {
-    const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45aaf2', '#a55eea'];
-    return colors[Math.floor(Math.random() * colors.length)];
+  width: 8px;
+  height: 8px;
+  background: ${({ delay }) => {
+    // Alternate colors based on delay
+    const colors = ['#4361EE', '#F72585', '#7209B7', '#3A0CA3', '#F9C74F'];
+    return colors[delay % colors.length];
   }};
   top: -10px;
-  left: ${() => `${Math.random() * 100}%`};
-  animation: ${confettiAnimation} 3s forwards;
-  animation-delay: ${({ delay }) => `${delay * 0.1}s`};
+  left: ${({ delay }) => (delay * 5) % 100}%;
+  opacity: 0;
+  border-radius: ${({ delay }) => delay % 2 === 0 ? '0' : '50%'};
+  animation: ${confettiAnimation} ${({ delay }) => 2 + (delay * 0.2)}s ease-out ${({ delay }) => delay * 0.1}s infinite;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    display: none; // Hide confetti on smallest screens to improve performance
+  }
 `;
 
 // View toggle switch
 const DensityToggleContainer = styled.div`
   position: absolute;
-  top: ${({ theme }) => theme.spacing.sm};
-  right: ${({ theme }) => theme.spacing.sm};
+  top: ${({ theme }) => theme.spacing.md};
+  right: ${({ theme }) => theme.spacing.md};
   display: flex;
   align-items: center;
-  z-index: 10;
-`;
-
-const ToggleLabel = styled.label`
-  font-size: ${({ theme }) => theme.typography.fontSize.xs};
-  color: ${({ theme }) => theme.colors.text.secondary};
-  margin-right: ${({ theme }) => theme.spacing.xs};
-  cursor: pointer;
-`;
-
-const ToggleSwitch = styled.label`
-  position: relative;
-  display: inline-block;
-  width: 48px;
-  height: 24px;
-  cursor: pointer;
-`;
-
-const ToggleInput = styled.input`
-  opacity: 0;
-  width: 0;
-  height: 0;
   
-  &:checked + span {
-    background-color: ${({ theme }) => theme.colors.primary};
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    top: ${({ theme }) => theme.spacing.sm};
+    right: ${({ theme }) => theme.spacing.sm};
   }
+`;
+
+const ToggleLabel = styled.span`
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.text.secondary};
+  margin-right: ${({ theme }) => theme.spacing.sm};
+  cursor: pointer;
   
-  &:checked + span:before {
-    transform: translateX(24px);
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    font-size: ${({ theme }) => theme.typography.fontSize.xs};
+    margin-right: ${({ theme }) => theme.spacing.xs};
   }
 `;
 
@@ -354,20 +412,57 @@ const ToggleSlider = styled.span`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${({ theme }) => theme.colors.border};
-  transition: .3s;
-  border-radius: 24px;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
   
   &:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
     background-color: white;
-    transition: .3s;
+    transition: .4s;
     border-radius: 50%;
+    
+    @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+    }
+  }
+`;
+
+const ToggleInput = styled.input`
+  opacity: 0;
+  width: 0;
+  height: 0;
+  
+  &:checked + ${ToggleSlider} {
+    background-color: ${({ theme }) => theme.colors.primary};
+  }
+  
+  &:checked + ${ToggleSlider}:before {
+    transform: translateX(20px);
+    
+    @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+      transform: translateX(16px);
+    }
+  }
+`;
+
+const ToggleSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    width: 34px;
+    height: 18px;
   }
 `;
 
@@ -392,13 +487,30 @@ const WinningVariant: React.FC<WinningVariantProps> = ({
   const hasComparisons = comparisons && comparisons.length > 0;
   const isHighConfidence = confidenceLevel >= 95;
   const [showDetails, setShowDetails] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check for mobile screen size on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   const toggleDetails = () => {
     setShowDetails(prev => !prev);
   };
   
   // Generate confetti pieces for celebration effect
-  const confettiCount = isHighConfidence ? 20 : 0;
+  const confettiCount = isHighConfidence && !isMobile ? 20 : 0;
   const confettiPieces = Array(confettiCount).fill(0).map((_, i) => (
     <Confetti key={`confetti-${i}`} delay={i} />
   ));

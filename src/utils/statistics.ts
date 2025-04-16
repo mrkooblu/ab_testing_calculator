@@ -7,7 +7,18 @@
  * @param conversionsTest - Number of conversions in test group
  * @returns The z-score for the test
  */
-export function calculateZScore(
+import { memoize, normCDFCache } from './cacheUtils';
+
+// Look-up table for critical Z values for common alpha levels
+const CRITICAL_Z_VALUES = new Map([
+  [0.1, 1.645],
+  [0.05, 1.96],
+  [0.01, 2.576],
+  [0.001, 3.291]
+]);
+
+// Memoized version of the Z-score calculation function
+export const calculateZScore = memoize(function(
   visitorsControl: number,
   conversionsControl: number,
   visitorsTest: number,
@@ -29,7 +40,43 @@ export function calculateZScore(
   
   // Return z-score (difference of proportions / standard error)
   return (rateTest - rateControl) / standardError;
-}
+}, 100);
+
+/**
+ * Optimized normal cumulative distribution function (CDF) with caching
+ * Uses a highly accurate approximation of the standard normal CDF.
+ * 
+ * @param z - The z value
+ * @returns The cumulative probability
+ */
+export const normalCDF = (z: number): number => {
+  // Round z to 4 decimal places for cache lookup
+  const roundedZ = Math.round(z * 10000) / 10000;
+  
+  // Check cache first
+  if (normCDFCache.has(String(roundedZ))) {
+    return normCDFCache.get(String(roundedZ))!;
+  }
+  
+  // If z is extreme, return bounds directly
+  if (z < -6) return 0;
+  if (z > 6) return 1;
+  
+  // Apply efficient CDF approximation
+  const absx = Math.abs(z);
+  const p = 0.5 * (1 + Math.tanh(
+    (absx * Math.sqrt(2/Math.PI)) * 
+    (1 + 0.044715 * Math.pow(absx, 2)) * 
+    (1 - Math.pow(Math.E, -0.5 * Math.pow(absx, 2)))
+  ));
+  
+  const result = z >= 0 ? p : 1 - p;
+  
+  // Cache the result
+  normCDFCache.set(String(roundedZ), result);
+  
+  return result;
+};
 
 /**
  * Calculates the p-value from a z-score.
@@ -39,17 +86,12 @@ export function calculateZScore(
  * @param isTwoSided - Whether to calculate a two-sided p-value (default: true)
  * @returns The p-value
  */
-export function getPValueFromZScore(zScore: number, isTwoSided: boolean = true): number {
+export const getPValueFromZScore = memoize((zScore: number, isTwoSided: boolean = true): number => {
   // Calculate absolute z-score for two-sided test
   const z = Math.abs(zScore);
   
-  // Use a more accurate approximation for the normal CDF
-  // Abramowitz and Stegun formula 26.2.17
-  const p = 0.5 * (1 + Math.tanh(
-    (z * Math.sqrt(2/Math.PI)) * 
-    (1 + 0.044715 * Math.pow(z, 2)) * 
-    (1 - Math.pow(Math.E, -0.5 * Math.pow(z, 2)))
-  ));
+  // Use the optimized normalCDF function
+  const p = normalCDF(z);
   
   // One-sided p-value: probability of observing a more extreme value 
   // in the direction of the alternative hypothesis
@@ -57,7 +99,7 @@ export function getPValueFromZScore(zScore: number, isTwoSided: boolean = true):
   
   // For a two-sided test, multiply by 2 (but cap at 1.0)
   return isTwoSided ? Math.min(2 * oneSidedP, 1) : oneSidedP;
-}
+}, 200);
 
 /**
  * Calculates the p-value for an A/B test comparison.
@@ -110,13 +152,13 @@ export function calculatePValue(
  * @param alpha - Significance level (default: 0.05)
  * @returns The statistical power as a percentage (0-100)
  */
-export function calculateStatisticalPower(
+export const calculateStatisticalPower = memoize((
   visitorsControl: number,
   conversionRateControl: number,
   visitorsTest: number,
   conversionRateTest: number,
   alpha: number = 0.05
-): number {
+): number => {
   // Convert percentages to proportions if needed
   const p1 = conversionRateControl > 1 ? conversionRateControl / 100 : conversionRateControl;
   const p2 = conversionRateTest > 1 ? conversionRateTest / 100 : conversionRateTest;
@@ -134,12 +176,8 @@ export function calculateStatisticalPower(
     return 0;
   }
   
-  // Critical z value for the given alpha (two-sided test)
-  // For common alpha values: 0.05 -> 1.96, 0.01 -> 2.576, etc.
-  let criticalZ = 1.96; // Default for alpha = 0.05
-  if (alpha === 0.1) criticalZ = 1.645;
-  if (alpha === 0.01) criticalZ = 2.576;
-  if (alpha === 0.001) criticalZ = 3.291;
+  // Get critical Z value from lookup table for efficiency
+  const criticalZ = CRITICAL_Z_VALUES.get(alpha) || 1.96;
   
   // Non-centrality parameter (standardized effect size)
   const ncp = effectSize / se;
@@ -149,28 +187,12 @@ export function calculateStatisticalPower(
   // where δ is the effect size and σ is the standard error
   const z = criticalZ - ncp;
   
-  // Use the same normal CDF approximation as in getPValueFromZScore
-  const normalCDF = (x: number): number => {
-    // If x is very negative, return close to 0
-    if (x < -6) return 0;
-    // If x is very positive, return close to 1
-    if (x > 6) return 1;
-    
-    const absx = Math.abs(x);
-    const p = 0.5 * (1 + Math.tanh(
-      (absx * Math.sqrt(2/Math.PI)) * 
-      (1 + 0.044715 * Math.pow(absx, 2)) * 
-      (1 - Math.pow(Math.E, -0.5 * Math.pow(absx, 2)))
-    ));
-    
-    return x >= 0 ? p : 1 - p;
-  };
-  
+  // Use the optimized normalCDF function
   const power = 1 - normalCDF(z);
   
   // Return as percentage, clamped between 0 and 100
   return Math.min(Math.max(power * 100, 0), 100);
-}
+}, 100);
 
 /**
  * Calculates the minimum sample size needed per variant for an A/B test
@@ -181,12 +203,12 @@ export function calculateStatisticalPower(
  * @param power - Desired power (default: 0.8 for 80%)
  * @returns The required sample size per variant
  */
-export function calculateRequiredSampleSize(
+export const calculateRequiredSampleSize = memoize((
   baseConversionRate: number,
   mde: number,
   alpha: number = 0.05,
   power: number = 0.8
-): number {
+): number => {
   // Convert percentages to proportions if needed
   const baseRate = baseConversionRate > 1 ? baseConversionRate / 100 : baseConversionRate;
   
@@ -197,16 +219,21 @@ export function calculateRequiredSampleSize(
   const p1Var = baseRate * (1 - baseRate);
   const p2Var = testRate * (1 - testRate);
   
-  // Z critical values
-  const zAlpha = 1.96; // For alpha = 0.05
-  const zBeta = 0.84;  // For power = 0.8
+  // Get critical Z values from lookup or use default
+  const zAlpha = CRITICAL_Z_VALUES.get(alpha) || 1.96;
+  
+  // Determine Z value for desired power
+  let zBeta = 0.84; // Default for power = 0.8
+  if (power === 0.9) zBeta = 1.28;
+  if (power === 0.95) zBeta = 1.645;
+  if (power === 0.99) zBeta = 2.326;
   
   // Calculate fixed sample size
   const sampleSize = 
     Math.pow(zAlpha + zBeta, 2) * (p1Var + p2Var) / Math.pow(baseRate - testRate, 2);
   
   return Math.ceil(sampleSize);
-}
+}, 100);
 
 /**
  * Checks if sample size is sufficient for reliable statistical inference
@@ -270,18 +297,24 @@ export function checkSampleSizeWarning(
  * @param confidenceLevel - Confidence level (default: 0.95)
  * @returns Object with lower and upper confidence bounds
  */
-export function calculateConfidenceInterval(
+export const calculateConfidenceInterval = memoize((
   visitors: number,
   conversions: number,
   confidenceLevel: number = 0.95
-): { lower: number; upper: number } {
+): { lower: number; upper: number } => {
   const p = conversions / visitors;
   
-  // Use Wilson score interval for better accuracy with small samples
-  const z = confidenceLevel === 0.99 ? 2.576 :
-           confidenceLevel === 0.95 ? 1.96 :
-           confidenceLevel === 0.90 ? 1.645 : 1.96;
+  // Get the appropriate Z value for the confidence level
+  // More efficient lookup compared to switch statement
+  const zMap = new Map([
+    [0.99, 2.576],
+    [0.95, 1.96],
+    [0.90, 1.645]
+  ]);
   
+  const z = zMap.get(confidenceLevel) || 1.96;
+  
+  // Use Wilson score interval for better accuracy with small samples
   const denominator = 1 + (z * z / visitors);
   const center = (p + (z * z) / (2 * visitors)) / denominator;
   const radius = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * visitors)) / visitors) / denominator;
@@ -290,4 +323,4 @@ export function calculateConfidenceInterval(
     lower: Math.max(0, (center - radius) * 100), // Convert to percentage
     upper: Math.min(100, (center + radius) * 100)  // Convert to percentage
   };
-} 
+}, 100); 

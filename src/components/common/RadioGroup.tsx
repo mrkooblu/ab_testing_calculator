@@ -20,6 +20,10 @@ const RadioGroupContainer = styled.div`
   display: flex;
   flex-direction: column;
   margin-bottom: ${({ theme }) => theme.spacing.md};
+  
+  @media (max-width: 768px) {
+    margin-bottom: ${({ theme }) => theme.spacing.sm};
+  }
 `;
 
 const RadioGroupLabel = styled.div`
@@ -29,12 +33,21 @@ const RadioGroupLabel = styled.div`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   color: ${({ theme }) => theme.colors.text.primary};
+  
+  @media (max-width: 768px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.md};
+  }
 `;
 
 const OptionsContainer = styled.div<{ horizontal?: boolean }>`
   display: flex;
   flex-direction: ${({ horizontal }) => (horizontal ? 'row' : 'column')};
   gap: ${({ theme }) => theme.spacing.sm};
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing.md};
+  }
 `;
 
 const RadioLabel = styled.label`
@@ -43,6 +56,12 @@ const RadioLabel = styled.label`
   cursor: pointer;
   user-select: none;
   font-size: ${({ theme }) => theme.typography.fontSize.md};
+  min-height: 44px; /* Minimum touch target height */
+  padding: ${({ theme }) => theme.spacing.xs} 0;
+  
+  @media (max-width: 768px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.md};
+  }
 `;
 
 const RadioInput = styled.input`
@@ -74,6 +93,18 @@ const RadioInput = styled.input`
     outline: none;
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
   }
+  
+  @media (max-width: 768px) {
+    width: 24px;
+    height: 24px;
+    
+    &:checked:after {
+      top: 4px;
+      left: 4px;
+      width: 12px;
+      height: 12px;
+    }
+  }
 `;
 
 const Tooltip = styled.div`
@@ -90,6 +121,12 @@ const Tooltip = styled.div`
   margin-left: ${({ theme }) => theme.spacing.xs};
   cursor: help;
   
+  @media (max-width: 768px) {
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+  }
+  
   &:hover::after {
     content: attr(data-tooltip);
     position: absolute;
@@ -104,6 +141,19 @@ const Tooltip = styled.div`
     color: white;
     font-size: ${({ theme }) => theme.typography.fontSize.xs};
     z-index: 10;
+    
+    @media (max-width: 768px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.sm};
+      max-width: 250px;
+      padding: ${({ theme }) => theme.spacing.sm};
+    }
+    
+    @media (max-width: 480px) {
+      width: 200px;
+      left: auto;
+      right: 0;
+      transform: none;
+    }
   }
 `;
 

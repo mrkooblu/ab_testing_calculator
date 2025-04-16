@@ -31,6 +31,7 @@ export interface VariantComparison {
   power: number;
   isSignificant: boolean;
   betterVariant: VariantKey | null;
+  standardError: number;
 }
 
 export interface StatisticalSettings {

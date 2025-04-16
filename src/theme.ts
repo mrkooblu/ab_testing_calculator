@@ -2,26 +2,26 @@ import { DefaultTheme } from 'styled-components';
 
 const theme: DefaultTheme = {
   colors: {
-    primary: '#2E5CE5',
-    secondary: '#121737',
-    success: '#4caf50',
-    error: '#f44336',
-    warning: '#ff9800',
-    info: '#2196f3',
-    variantA: '#2E5CE5',
-    variantB: '#f72585',
-    variantC: '#7209b7',
-    variantD: '#3a0ca3',
-    background: '#ffffff',
-    surface: '#ffffff',
+    primary: '#4361EE',
+    secondary: '#F72585',
+    success: '#00C853',
+    error: '#F44336',
+    warning: '#FF9800',
+    info: '#2196F3',
+    variantA: '#4361EE',
+    variantB: '#F72585',
+    variantC: '#7209B7',
+    variantD: '#3A0CA3',
+    background: '#F8F9FA',
+    surface: '#FFFFFF',
     text: {
-      primary: '#121737',
-      secondary: '#595D73',
-      disabled: '#A0A2AF',
-      hint: '#A0A2AF'
+      primary: '#212121',
+      secondary: '#757575',
+      disabled: '#BDBDBD',
+      inverse: '#FFFFFF'
     },
-    border: '#A3B7EB',
-    divider: '#EBF3FF',
+    border: '#E0E0E0',
+    divider: '#EEEEEE',
     tooltip: {
       background: 'rgba(33, 33, 33, 0.9)',
       text: '#ffffff',
@@ -29,6 +29,7 @@ const theme: DefaultTheme = {
       border: 'rgba(255, 255, 255, 0.1)',
       link: '#8ecdf8'
     },
+    focus: 'rgba(67, 97, 238, 0.6)',
   },
   typography: {
     fontFamily: "'Manrope', sans-serif",
@@ -94,11 +95,20 @@ const theme: DefaultTheme = {
     long: '0.5s ease',
   },
   breakpoints: {
-    xs: '320px',
-    sm: '576px',
-    md: '768px',
-    lg: '1024px',
-    xl: '1280px',
+    xxs: '360px',    // Very small mobile
+    xs: '480px',     // Small mobile
+    sm: '640px',     // Larger mobile
+    md: '768px',     // Tablets
+    lg: '1024px',    // Small laptops
+    xl: '1280px',    // Standard laptops
+    xxl: '1440px',   // Large screens
+  },
+  focus: {
+    ring: '0 0 0 3px rgba(67, 97, 238, 0.6)',
+    outline: '2px solid rgba(67, 97, 238, 0.8)',
+    transitionProperty: 'box-shadow, border-color',
+    transitionDuration: '0.2s',
+    transitionTimingFunction: 'ease-in-out',
   },
 };
 

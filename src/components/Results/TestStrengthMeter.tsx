@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { calculateTestStrength } from '../../utils/visualizationUtils';
+import useVisualizationWorker, { isTestStrengthResponse } from '../../hooks/useVisualizationWorker';
+import useInView from '../../hooks/useInView';
 
 interface TestStrengthMeterProps {
   pValue: number;
@@ -97,25 +99,55 @@ const TestStrengthMeter: React.FC<TestStrengthMeterProps> = ({
   confidenceLevel,
   isSignificant,
 }) => {
+  // Use Intersection Observer to delay calculation until visible
+  const { ref, inView } = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+  
   // State to control animation
   const [animate, setAnimate] = useState(false);
+  
+  // State to store strength value
+  const [strength, setStrength] = useState<number>(0);
   
   // Alpha is derived from confidence level
   const alpha = 1 - (confidenceLevel / 100);
   
-  // Calculate strength percentage
-  const strength = calculateTestStrength(pValue, alpha);
+  // Use our web worker hook for calculation
+  const { 
+    loading, 
+    error, 
+    result, 
+    calculateTestStrength: workerCalculateStrength, 
+    isWorkerAvailable 
+  } = useVisualizationWorker();
   
-  // Debug log to troubleshoot issues
-  console.log(`TestStrengthMeter - pValue: ${pValue}, alpha: ${alpha}, strength: ${strength}, isSignificant: ${isSignificant}`);
-  
-  // Trigger animation on mount
+  // When the component comes into view, trigger calculation
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimate(true);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, []);
+    if (inView) {
+      if (isWorkerAvailable) {
+        // Use web worker if available
+        workerCalculateStrength({ pValue, alpha });
+      } else {
+        // Fallback to direct calculation
+        setStrength(calculateTestStrength(pValue, alpha));
+      }
+      
+      // Trigger animation with a slight delay
+      const timer = setTimeout(() => {
+        setAnimate(true);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [inView, pValue, alpha, isWorkerAvailable, workerCalculateStrength]);
+  
+  // Update strength when worker result changes
+  useEffect(() => {
+    if (result && isTestStrengthResponse(result)) {
+      setStrength(result.strength);
+    }
+  }, [result]);
   
   // Get appropriate label based on strength
   const getStrengthLabel = () => {
@@ -125,8 +157,13 @@ const TestStrengthMeter: React.FC<TestStrengthMeterProps> = ({
     return 'Strong Evidence';
   };
   
+  // For debugging
+  if (error) {
+    console.error('Error calculating test strength:', error);
+  }
+  
   return (
-    <MeterContainer>
+    <MeterContainer ref={ref}>
       <MeterTitle>
         Test Strength
         <MeterValue isSignificant={isSignificant}>

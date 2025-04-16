@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import styled from 'styled-components';
 
 interface InputProps {
@@ -17,6 +17,10 @@ interface InputProps {
   fullWidth?: boolean;
   tooltipText?: string;
   allowMultipleNumbers?: boolean;
+  tabIndex?: number;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  debounceTime?: number;
 }
 
 // Function to parse multiple numbers from input
@@ -38,11 +42,30 @@ const parseMultipleNumbers = (input: string): number[] => {
   return numbers;
 };
 
+// Debounce function for optimizing input handling
+const debounce = <F extends (...args: any[]) => any>(
+  func: F,
+  waitFor: number
+): ((...args: Parameters<F>) => void) => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return (...args: Parameters<F>): void => {
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => func(...args), waitFor);
+  };
+};
+
 const InputContainer = styled.div<{ fullWidth?: boolean }>`
   display: flex;
   flex-direction: column;
   margin-bottom: ${({ theme }) => theme.spacing.md};
   width: ${({ fullWidth }) => (fullWidth ? '100%' : 'auto')};
+  
+  @media (max-width: 768px) {
+    margin-bottom: ${({ theme }) => theme.spacing.sm};
+  }
 `;
 
 const InputLabel = styled.label`
@@ -52,6 +75,10 @@ const InputLabel = styled.label`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   color: ${({ theme }) => theme.colors.text.primary};
+  
+  @media (max-width: 768px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.md};
+  }
 `;
 
 const StyledInput = styled.input<{ hasError?: boolean }>`
@@ -61,15 +88,21 @@ const StyledInput = styled.input<{ hasError?: boolean }>`
     hasError ? theme.colors.error : theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
   background-color: ${({ theme }) => theme.colors.background};
-  transition: border-color ${({ theme }) => theme.transitions.short};
+  transition: ${({ theme }) => theme.focus.transitionProperty} ${({ theme }) => theme.focus.transitionDuration} ${({ theme }) => theme.focus.transitionTimingFunction};
   width: 100%;
+  height: 44px; /* Minimum height for touch targets */
   
   &:focus {
     outline: none;
     border-color: ${({ theme, hasError }) => 
       hasError ? theme.colors.error : theme.colors.primary};
-    box-shadow: 0 0 0 3px ${({ theme, hasError }) => 
-      hasError ? 'rgba(244, 67, 54, 0.3)' : 'rgba(67, 97, 238, 0.3)'};
+    box-shadow: ${({ theme, hasError }) => 
+      hasError ? '0 0 0 3px rgba(244, 67, 54, 0.3)' : theme.focus.ring};
+  }
+  
+  &:focus-visible {
+    outline: ${({ theme }) => theme.focus.outline};
+    outline-offset: 1px;
   }
   
   &:disabled {
@@ -77,12 +110,26 @@ const StyledInput = styled.input<{ hasError?: boolean }>`
     cursor: not-allowed;
     opacity: 0.7;
   }
+  
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing.md};
+    font-size: ${({ theme }) => theme.typography.fontSize.md};
+  }
+  
+  /* Prevent iOS zoom on focus by increasing font size */
+  @media (max-width: 480px) {
+    font-size: 16px; /* iOS doesn't zoom when font-size is 16px or larger */
+  }
 `;
 
 const ErrorMessage = styled.div`
   color: ${({ theme }) => theme.colors.error};
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   margin-top: ${({ theme }) => theme.spacing.xs};
+  
+  @media (max-width: 768px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.md};
+  }
 `;
 
 const Tooltip = styled.div`
@@ -99,6 +146,12 @@ const Tooltip = styled.div`
   margin-left: ${({ theme }) => theme.spacing.xs};
   cursor: help;
   
+  @media (max-width: 768px) {
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+  }
+  
   &:hover::after {
     content: attr(data-tooltip);
     position: absolute;
@@ -113,6 +166,19 @@ const Tooltip = styled.div`
     color: white;
     font-size: ${({ theme }) => theme.typography.fontSize.xs};
     z-index: 10;
+    
+    @media (max-width: 768px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.sm};
+      max-width: 280px;
+      padding: ${({ theme }) => theme.spacing.sm};
+    }
+    
+    @media (max-width: 480px) {
+      width: 200px;
+      left: auto;
+      right: 0;
+      transform: none;
+    }
   }
 `;
 
@@ -132,11 +198,15 @@ const Input: React.FC<InputProps> = ({
   fullWidth = false,
   tooltipText,
   allowMultipleNumbers = false,
+  tabIndex,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledby,
+  debounceTime = 0
 }) => {
   const [intermediateValue, setIntermediateValue] = useState<string>('');
   const [isFirstInput, setIsFirstInput] = useState<boolean>(true);
   const inputRef = useRef<HTMLInputElement>(null);
-
+  
   // Initialize intermediate value
   useEffect(() => {
     if (!intermediateValue) {
@@ -144,7 +214,8 @@ const Input: React.FC<InputProps> = ({
     }
   }, [intermediateValue, value]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Create a memoized change handler to avoid unnecessary re-renders
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     
     if (type === 'number') {
@@ -209,10 +280,18 @@ const Input: React.FC<InputProps> = ({
       setIntermediateValue(newValue);
       onChange(e);
     }
-  };
+  }, [type, allowMultipleNumbers, intermediateValue, isFirstInput, onChange]);
 
-  // Handle paste event
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+  // Create a debounced version of the handler if debounceTime is specified
+  const debouncedChangeHandler = useCallback(
+    debounceTime > 0 
+      ? debounce(handleInputChange, debounceTime) 
+      : handleInputChange,
+    [handleInputChange, debounceTime]
+  );
+
+  // Handle paste event with memoization
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     if (type === 'number' && allowMultipleNumbers) {
       e.preventDefault();
       const pastedText = e.clipboardData.getData('text');
@@ -236,10 +315,10 @@ const Input: React.FC<InputProps> = ({
         onChange(syntheticEvent);
       }
     }
-  };
+  }, [type, allowMultipleNumbers, onChange]);
 
-  // Handle blur event to clean up the input
-  const handleBlur = () => {
+  // Handle blur event with memoization
+  const handleBlur = useCallback(() => {
     if (type === 'number' && allowMultipleNumbers) {
       const numbers = parseMultipleNumbers(intermediateValue);
       if (numbers.length > 0) {
@@ -267,7 +346,7 @@ const Input: React.FC<InputProps> = ({
         setIsFirstInput(true);
       }
     }
-  };
+  }, [type, allowMultipleNumbers, intermediateValue, onChange]);
 
   return (
     <InputContainer fullWidth={fullWidth}>
@@ -285,9 +364,9 @@ const Input: React.FC<InputProps> = ({
         type={allowMultipleNumbers && type === 'number' ? 'text' : type}
         id={id || name}
         name={name}
-        placeholder={allowMultipleNumbers && type === 'number' ? 'Enter numbers separated by commas' : placeholder}
+        placeholder={allowMultipleNumbers && type === 'number' ? 'Enter number(s)' : placeholder}
         value={intermediateValue}
-        onChange={handleInputChange}
+        onChange={debouncedChangeHandler}
         onPaste={handlePaste}
         onBlur={handleBlur}
         min={type === 'number' ? min : undefined}
@@ -295,10 +374,14 @@ const Input: React.FC<InputProps> = ({
         disabled={disabled}
         required={required}
         hasError={!!error}
+        tabIndex={tabIndex}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledby}
       />
       {error && <ErrorMessage>{error}</ErrorMessage>}
     </InputContainer>
   );
 };
 
-export default Input; 
+// Memoize the entire component to prevent unnecessary re-renders
+export default memo(Input); 

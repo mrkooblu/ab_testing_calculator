@@ -123,13 +123,13 @@ const BarWrapper = styled.div`
 const Bar = styled.div<{ width: number; variant: string }>`
   height: 100%;
   width: ${({ width }) => `${width}%`};
-  background-color: ${({ theme, variant }) => {
+  background-color: ${({ variant }) => {
     switch(variant) {
-      case 'A': return theme.colors.variantA;
-      case 'B': return theme.colors.variantB;
-      case 'C': return theme.colors.variantC;
-      case 'D': return theme.colors.variantD;
-      default: return theme.colors.variantA;
+      case 'A': return '#2E5CE5'; // Original primary blue
+      case 'B': return '#1A4BDB'; // Deeper blue variant
+      case 'C': return '#4270EF'; // Brighter blue variant
+      case 'D': return '#3D4DAA'; // More navy-tinted blue
+      default: return '#2E5CE5';
     }
   }};
   transition: width 0.5s ease;
@@ -164,13 +164,13 @@ const StatCard = styled.div<{ variant: string }>`
   display: flex;
   flex-direction: column;
   background-color: ${({ theme }) => theme.colors.background};
-  border-left: 3px solid ${({ theme, variant }) => {
+  border-left: 3px solid ${({ variant }) => {
     switch(variant) {
-      case 'A': return theme.colors.variantA;
-      case 'B': return theme.colors.variantB;
-      case 'C': return theme.colors.variantC;
-      case 'D': return theme.colors.variantD;
-      default: return theme.colors.variantA;
+      case 'A': return '#2E5CE5'; // Original primary blue
+      case 'B': return '#1A4BDB'; // Deeper blue variant
+      case 'C': return '#4270EF'; // Brighter blue variant
+      case 'D': return '#3D4DAA'; // More navy-tinted blue
+      default: return '#2E5CE5';
     }
   }};
   padding: ${({ theme }) => theme.spacing.sm};
