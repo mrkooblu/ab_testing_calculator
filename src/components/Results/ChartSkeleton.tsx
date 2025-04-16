@@ -4,6 +4,8 @@ import styled, { keyframes } from 'styled-components';
 interface ChartSkeletonProps {
   height?: number;
   style?: React.CSSProperties;
+  variant?: 'distribution' | 'strength' | 'general';
+  animate?: boolean;
 }
 
 const shimmer = keyframes`
@@ -15,12 +17,22 @@ const shimmer = keyframes`
   }
 `;
 
-const SkeletonContainer = styled.div<{ height: number }>`
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.6;
+  }
+`;
+
+const SkeletonContainer = styled.div<{ height: number; animate?: boolean }>`
   width: 100%;
   height: ${({ height }) => `${height}px`};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   position: relative;
   overflow: hidden;
+  animation: ${fadeIn} 0.2s ease-in;
 `;
 
 const SkeletonBase = styled.div`
@@ -68,33 +80,97 @@ const SkeletonYAxis = styled(SkeletonAxis)`
   bottom: 15%;
 `;
 
-const SkeletonCurve = styled.div<{ color: string }>`
+const SkeletonCurve = styled.div<{ color: string; left?: string; width?: string; height?: string; delay?: string }>`
   position: absolute;
-  height: 35%;
-  width: 80%;
-  left: 15%;
+  height: ${props => props.height || '35%'};
+  width: ${props => props.width || '80%'};
+  left: ${props => props.left || '15%'};
   top: 30%;
   border-radius: 50% 50% 0 0;
   border: 2px solid ${({ color }) => color};
   border-bottom: none;
   opacity: 0.3;
+  animation: ${fadeIn} 0.3s ease-in;
+  animation-delay: ${props => props.delay || '0s'};
 `;
 
-const ChartSkeleton: React.FC<ChartSkeletonProps> = ({ height = 250, style }) => {
+// Distribution version that matches the actual distribution chart
+const DistributionSkeleton = ({ height }: { height: number }) => (
+  <>
+    <SkeletonXAxis />
+    <SkeletonYAxis />
+    {/* Replace curve outlines with rectangular placeholders to avoid the glitchy appearance */}
+    <rect 
+      x="10%" 
+      y="30%" 
+      width="80%" 
+      height="10%" 
+      rx="4" 
+      fill="#f0f0f0"
+    />
+    <rect 
+      x="10%" 
+      y="50%" 
+      width="80%" 
+      height="10%" 
+      rx="4" 
+      fill="#f5f5f5"
+    />
+  </>
+);
+
+// Strength meter version that matches the test strength meter
+const StrengthSkeleton = ({ height }: { height: number }) => (
+  <>
+    <div style={{ 
+      position: 'absolute', 
+      width: '80px', 
+      height: '80px', 
+      borderRadius: '50%', 
+      border: '6px solid #eee',
+      top: '50%',
+      left: '15%',
+      transform: 'translateY(-50%)'
+    }} />
+    <div style={{
+      position: 'absolute',
+      top: '30%',
+      left: 'calc(15% + 100px)',
+      width: '60%',
+      height: '40%',
+    }}>
+      <div style={{ width: '70%', height: '8px', backgroundColor: '#eee', marginBottom: '12px', borderRadius: '4px' }} />
+      <div style={{ width: '50%', height: '8px', backgroundColor: '#eee', marginBottom: '12px', borderRadius: '4px' }} />
+      <div style={{ width: '60%', height: '8px', backgroundColor: '#eee', borderRadius: '4px' }} />
+    </div>
+  </>
+);
+
+// General purpose skeleton with minimal visual presence
+const GeneralSkeleton = ({ height }: { height: number }) => (
+  <>
+    {/* Empty skeleton that takes space but shows nothing */}
+    <SkeletonBase style={{ opacity: 0.1 }} />
+  </>
+);
+
+const ChartSkeleton: React.FC<ChartSkeletonProps> = ({ 
+  height = 250, 
+  style, 
+  variant = 'distribution',
+  animate = true 
+}) => {
   return (
-    <SkeletonContainer height={height} style={style}>
+    <SkeletonContainer height={height} style={style} animate={animate}>
       <SkeletonBase />
       
-      {/* Chart structure */}
-      <SkeletonXAxis />
-      <SkeletonYAxis />
-      
-      {/* Curve suggestions */}
-      <SkeletonCurve color="#4361ee" style={{ transform: 'scaleX(0.8) translateX(-10%)' }} />
-      <SkeletonCurve color="#f72585" style={{ transform: 'scaleX(0.8) translateX(10%)' }} />
+      {/* Render appropriate skeleton based on variant */}
+      {variant === 'distribution' && <DistributionSkeleton height={height} />}
+      {variant === 'strength' && <StrengthSkeleton height={height} />}
+      {variant === 'general' && <GeneralSkeleton height={height} />}
       
       {/* Shimmer effect */}
-      <SkeletonShimmer />
+      {animate && <SkeletonShimmer />}
     </SkeletonContainer>
   );
 };

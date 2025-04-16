@@ -57,10 +57,18 @@ const RadioLabel = styled.label`
   user-select: none;
   font-size: ${({ theme }) => theme.typography.fontSize.md};
   min-height: 44px; /* Minimum touch target height */
-  padding: ${({ theme }) => theme.spacing.xs} 0;
+  padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  border: 1px solid transparent;
+  transition: all ${({ theme }) => theme.transitions.short};
+  
+  &:hover {
+    background-color: ${({ theme }) => `${theme.colors.primary}05`};
+  }
   
   @media (max-width: 768px) {
     font-size: ${({ theme }) => theme.typography.fontSize.md};
+    padding: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
@@ -73,6 +81,7 @@ const RadioInput = styled.input`
   margin-right: ${({ theme }) => theme.spacing.sm};
   position: relative;
   cursor: pointer;
+  flex-shrink: 0;
   
   &:checked {
     border-color: ${({ theme }) => theme.colors.primary};
@@ -80,12 +89,30 @@ const RadioInput = styled.input`
     &:after {
       content: '';
       position: absolute;
-      top: 3px;
-      left: 3px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       width: 10px;
       height: 10px;
       border-radius: 50%;
       background-color: ${({ theme }) => theme.colors.primary};
+      animation: pulse 0.3s ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0% { 
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+      }
+      100% { 
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
+    
+    & + span {
+      color: ${({ theme }) => theme.colors.primary};
+      font-weight: ${({ theme }) => theme.typography.fontWeight.semiBold};
     }
   }
   
@@ -99,8 +126,6 @@ const RadioInput = styled.input`
     height: 24px;
     
     &:checked:after {
-      top: 4px;
-      left: 4px;
       width: 12px;
       height: 12px;
     }
@@ -182,7 +207,11 @@ const RadioGroup: React.FC<RadioGroupProps> = ({
       )}
       <OptionsContainer horizontal={horizontal}>
         {options.map((option) => (
-          <RadioLabel key={option.value.toString()}>
+          <RadioLabel 
+            key={option.value.toString()}
+            style={value.toString() === option.value.toString() ? 
+              { backgroundColor: 'rgba(67, 97, 238, 0.08)', borderColor: 'rgba(67, 97, 238, 0.3)' } : undefined}
+          >
             <RadioInput
               type="radio"
               name={name}
@@ -190,7 +219,7 @@ const RadioGroup: React.FC<RadioGroupProps> = ({
               checked={value.toString() === option.value.toString()}
               onChange={handleChange}
             />
-            {option.label}
+            <span>{option.label}</span>
           </RadioLabel>
         ))}
       </OptionsContainer>

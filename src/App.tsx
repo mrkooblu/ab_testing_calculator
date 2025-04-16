@@ -8,13 +8,13 @@ import ResultsDisplay from './components/Results/ResultsDisplay';
 import SetupWizard from './components/Guidance/SetupWizard';
 import { ABTestFormData } from './types';
 import { decodeURLToTestData } from './utils/urlParameters';
-import { Segment } from './components/Form/SegmentationPanel';
 import TabsContainer from './components/Tabs/TabsContainer';
 import { CalculatorIcon, GuideIcon, SampleSizeIcon, ExamplesIcon } from './components/Icons/TabIcons';
 import SampleSizeCalculator from './components/Guidance/SampleSizeCalculator';
 import ExampleDataSets from './components/Guidance/ExampleDataSets';
 import { calculateConversionRate } from './utils/statsCalculator';
 import Tooltip from './components/common/Tooltip';
+import { VisualizationProvider } from './context/VisualizationContext';
 
 // Define a key for storing wizard completion in localStorage
 const WIZARD_COMPLETED_KEY = 'ab_testing_calculator_wizard_completed';
@@ -176,7 +176,6 @@ const App: React.FC = () => {
   const [testData, setTestData] = useState<ABTestFormData | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [isCalculated, setIsCalculated] = useState(false);
-  const [segments, setSegments] = useState<Segment[]>([]);
   const [activeTab, setActiveTab] = useState<string>('calculator');
   
   const calculatorRef = useRef<HTMLDivElement>(null);
@@ -239,7 +238,6 @@ const App: React.FC = () => {
     // Clear state
     setTestData(null);
     setIsCalculated(false);
-    setSegments([]);
     
     // Clear URL parameters
     window.history.pushState({}, '', window.location.pathname);
@@ -257,9 +255,8 @@ const App: React.FC = () => {
     localStorage.setItem(WIZARD_COMPLETED_KEY, 'true');
   };
   
-  const handleTestCalculation = (data: ABTestFormData, segmentData: Segment[] = []) => {
+  const handleTestCalculation = (data: ABTestFormData) => {
     setTestData(data);
-    setSegments(segmentData);
     setIsCalculated(true);
     
     // Scroll to results
@@ -357,7 +354,6 @@ const App: React.FC = () => {
               <ResultsDisplay 
                 data={testData} 
                 isVisible={isCalculated} 
-                segments={segments}
               />
             )}
           </div>
@@ -403,57 +399,59 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
-      <AppWrapper>
-        <HeaderSection>
-          <AppContainer>
-            <HeroContent>
-              <MainTitle>
-                A/B Testing Significance Calculator
-              </MainTitle>
-              <Description>
-                Are your results statistically significant? Find out if your test variations made a 
-                real difference. Our calculator helps you determine significance, analyze 
-                conversion rates, and make data-driven decisions.
-              </Description>
-            </HeroContent>
-          </AppContainer>
-        </HeaderSection>
+      <VisualizationProvider>
+        <AppWrapper>
+          <HeaderSection>
+            <AppContainer>
+              <HeroContent>
+                <MainTitle>
+                  A/B Testing Significance Calculator
+                </MainTitle>
+                <Description>
+                  Are your results statistically significant? Find out if your test variations made a 
+                  real difference. Our calculator helps you determine significance, analyze 
+                  conversion rates, and make data-driven decisions.
+                </Description>
+              </HeroContent>
+            </AppContainer>
+          </HeaderSection>
 
-        <AppContainer>
-          <TabsContainer 
-            tabs={mainTabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-          
-          {/* Add the reset button after the container that displays the active tab content */}
-          {isCalculated && activeTab === 'calculator' && (
-            <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-              <button 
-                onClick={handleReset}
-                style={{
-                  backgroundColor: theme.colors.background,
-                  color: theme.colors.text.primary,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  padding: '0.5rem 1rem',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem'
-                }}
-              >
-                Reset Calculator
-              </button>
-            </div>
-          )}
-          
-          {showWizard && (
-            <SetupWizard 
-              onComplete={handleWizardComplete} 
-              onApplyExample={handleApplyExample}
+          <AppContainer>
+            <TabsContainer 
+              tabs={mainTabs}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
             />
-          )}
-        </AppContainer>
-      </AppWrapper>
+            
+            {/* Add the reset button after the container that displays the active tab content */}
+            {isCalculated && activeTab === 'calculator' && (
+              <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+                <button 
+                  onClick={handleReset}
+                  style={{
+                    backgroundColor: theme.colors.background,
+                    color: theme.colors.text.primary,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: theme.borderRadius.md,
+                    padding: '0.5rem 1rem',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  Reset Calculator
+                </button>
+              </div>
+            )}
+            
+            {showWizard && (
+              <SetupWizard 
+                onComplete={handleWizardComplete} 
+                onApplyExample={handleApplyExample}
+              />
+            )}
+          </AppContainer>
+        </AppWrapper>
+      </VisualizationProvider>
     </ThemeProvider>
   );
 };

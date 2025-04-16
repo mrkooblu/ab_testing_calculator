@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
+import { useVisualization } from '../../context/VisualizationContext';
 
 // Types for our tabs
 export interface MainTab {
@@ -148,12 +149,41 @@ const TabContent = styled.div`
   margin-top: ${({ theme }) => theme.spacing.md};
 `;
 
+// Add a styled wrapper for smooth transitions
+const TabContentWrapper = styled.div<{ isActive: boolean; isTabSwitching: boolean }>`
+  opacity: ${({ isActive }) => (isActive ? 1 : 0)};
+  display: ${({ isActive }) => (isActive ? 'block' : 'none')};
+  transition: ${({ isTabSwitching }) => 
+    isTabSwitching ? 'opacity 0ms' : 'opacity 300ms ease-in-out'};
+`;
+
 const TabsContainer: React.FC<TabsContainerProps> = ({
   tabs,
   activeTab,
   onTabChange,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { setActiveTab: setVisualizationTab, isTabSwitching } = useVisualization();
+  
+  // Create a memoized map of all tabs content to prevent unmounting
+  const tabContentMap = useMemo(() => {
+    return tabs.reduce((acc, tab) => {
+      acc[tab.id] = tab.content;
+      return acc;
+    }, {} as Record<string, React.ReactNode>);
+  }, [tabs]);
+  
+  // When the active tab changes, update the visualization context
+  useEffect(() => {
+    setVisualizationTab(activeTab);
+  }, [activeTab, setVisualizationTab]);
+  
+  // Handle tab change with optimized transitions
+  const handleTabChange = (tabId: string) => {
+    // Use the passed-in handler
+    onTabChange(tabId);
+  };
+  
   const activeTabData = tabs.find((tab) => tab.id === activeTab);
 
   return (
@@ -164,7 +194,7 @@ const TabsContainer: React.FC<TabsContainerProps> = ({
           <TabButton
             key={tab.id}
             isActive={activeTab === tab.id}
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
           >
             {tab.icon}
             {tab.label}
@@ -187,7 +217,7 @@ const TabsContainer: React.FC<TabsContainerProps> = ({
               key={tab.id}
               isActive={activeTab === tab.id}
               onClick={() => {
-                onTabChange(tab.id);
+                handleTabChange(tab.id);
                 setIsDropdownOpen(false);
               }}
             >
@@ -199,7 +229,16 @@ const TabsContainer: React.FC<TabsContainerProps> = ({
       </MobileDropdown>
 
       <TabContent>
-        {activeTabData?.content}
+        {/* Render all tabs but only show the active one */}
+        {tabs.map(tab => (
+          <TabContentWrapper 
+            key={tab.id} 
+            isActive={tab.id === activeTab} 
+            isTabSwitching={isTabSwitching}
+          >
+            {tabContentMap[tab.id]}
+          </TabContentWrapper>
+        ))}
       </TabContent>
     </Container>
   );

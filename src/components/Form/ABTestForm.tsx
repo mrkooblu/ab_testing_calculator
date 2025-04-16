@@ -249,6 +249,11 @@ const RadioOption = styled.label<{ isSelected: boolean }>`
 // Add a collapsible container for the advanced settings
 const CollapsibleSection = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+  overflow: hidden;
+  background-color: ${({ theme }) => theme.colors.surface};
+  transition: all ${({ theme }) => theme.transitions.short};
 `;
 
 const ExpandIcon = styled.span<{ isOpen: boolean }>`
@@ -387,13 +392,19 @@ const TooltipIcon = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.text.secondary};
-  color: white;
-  font-size: 10px;
+  background-color: ${({ theme }) => theme.colors.primary}10;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 12px;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   cursor: help;
+  transition: all ${({ theme }) => theme.transitions.short};
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primary}30;
+  }
 `;
 
 const TooltipContent = styled.div`
@@ -515,25 +526,21 @@ const SettingsToggle = styled.button`
   display: flex;
   align-items: center;
   width: 100%;
-  background: none;
+  background: linear-gradient(to right, ${({ theme }) => `${theme.colors.surface}, ${theme.colors.background}`});
   border: none;
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.md};
   cursor: pointer;
   border-radius: ${({ theme }) => theme.borderRadius.sm};
-  transition: background-color 0.2s;
+  transition: all ${({ theme }) => theme.transitions.short};
   min-height: 44px; /* Minimum touch target height */
   
   &:hover {
-    background-color: ${({ theme }) => theme.colors.surface};
+    background: linear-gradient(to right, ${({ theme }) => `${theme.colors.surface}, ${theme.colors.primary}05`});
   }
   
   &:focus {
     outline: none;
     box-shadow: ${({ theme }) => theme.focus.ring};
-  }
-  
-  @media (max-width: 480px) {
-    padding: ${({ theme }) => theme.spacing.md};
   }
 `;
 
@@ -542,58 +549,72 @@ const SettingsIcon = styled.span<{ isOpen: boolean }>`
   font-size: ${({ theme }) => theme.typography.fontSize.lg};
   opacity: ${({ isOpen }) => (isOpen ? 1 : 0.7)};
   transition: opacity 0.2s;
+  background: ${({ theme, isOpen }) => isOpen ? `${theme.colors.primary}15` : 'transparent'};
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${({ theme }) => theme.borderRadius.circle};
 `;
 
 const SettingsLabel = styled.span`
   flex: 1;
   text-align: left;
-  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semiBold};
   font-size: ${({ theme }) => theme.typography.fontSize.md};
+  color: ${({ theme }) => theme.colors.text.primary};
 `;
 
 const ChevronIcon = styled.span<{ isOpen: boolean }>`
   transform: ${({ isOpen }) => (isOpen ? 'rotate(180deg)' : 'rotate(0)')};
   transition: transform 0.2s ease-in-out;
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.primary};
+  opacity: 0.8;
 `;
 
 const SettingsContent = styled.div<{ isOpen: boolean }>`
-  display: ${({ isOpen }) => (isOpen ? 'block' : 'none')};
-  padding: ${({ theme }) => theme.spacing.md};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  margin-top: ${({ theme }) => theme.spacing.sm};
-  background-color: ${({ theme }) => theme.colors.surface};
+  height: ${({ isOpen }) => (isOpen ? 'auto' : '0')};
+  opacity: ${({ isOpen }) => (isOpen ? '1' : '0')};
+  overflow: hidden;
+  transition: all 0.3s ease;
+  padding: ${({ isOpen, theme }) => isOpen ? theme.spacing.md : '0'};
+  border-top: ${({ isOpen, theme }) => isOpen ? `1px solid ${theme.colors.divider}` : 'none'};
+  background-color: ${({ theme }) => theme.colors.background};
 `;
 
 const SettingsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  margin: -${({ theme }) => theme.spacing.sm};
+  gap: ${({ theme }) => theme.spacing.md};
   
   @media (max-width: 768px) {
     flex-direction: column;
-    margin: 0;
   }
 `;
 
 const SettingGroup = styled.div`
   flex: 1;
   min-width: 250px;
-  padding: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
   
   @media (max-width: 768px) {
     min-width: 100%;
-    padding: ${({ theme }) => theme.spacing.sm} 0;
-    margin-bottom: ${({ theme }) => theme.spacing.md};
+    margin-bottom: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
 const SettingLabel = styled.label`
-  display: block;
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  display: flex;
+  align-items: center;
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semiBold};
   color: ${({ theme }) => theme.colors.text.primary};
+  font-size: ${({ theme }) => theme.typography.fontSize.md};
 `;
 
 const ABTestForm: React.FC<ABTestFormProps> = ({ onCalculate, initialData }): JSX.Element => {

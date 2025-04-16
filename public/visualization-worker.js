@@ -1,6 +1,55 @@
 // Web Worker for A/B Testing Calculator visualization calculations
 // This offloads CPU-intensive calculations from the main thread
 
+// Track ongoing calculations to allow cancellation
+const pendingCalculations = new Map();
+
+// Track cached results
+const resultCache = new Map();
+const MAX_CACHE_SIZE = 50;
+
+// Cache management utilities
+const cacheResult = (cacheKey, result) => {
+  if (!cacheKey) return;
+  
+  // Add to cache with timestamp
+  resultCache.set(cacheKey, {
+    result,
+    timestamp: Date.now()
+  });
+  
+  // Prune cache if too large
+  if (resultCache.size > MAX_CACHE_SIZE) {
+    let oldestKey = null;
+    let oldestTime = Date.now();
+    
+    resultCache.forEach((value, key) => {
+      if (value.timestamp < oldestTime) {
+        oldestTime = value.timestamp;
+        oldestKey = key;
+      }
+    });
+    
+    if (oldestKey) {
+      resultCache.delete(oldestKey);
+    }
+  }
+};
+
+// Check if a result is cached
+const getFromCache = (cacheKey) => {
+  if (!cacheKey) return null;
+  
+  const cached = resultCache.get(cacheKey);
+  if (cached) {
+    // Update access timestamp
+    cached.timestamp = Date.now();
+    return cached.result;
+  }
+  
+  return null;
+};
+
 // Normal distribution PDF calculation
 function normalPDF(x, mean, stdDev) {
   const variance = stdDev * stdDev;
@@ -55,14 +104,47 @@ function calculateCriticalZ(confidenceLevel, twoSided) {
 
 // Message handler
 self.onmessage = function(e) {
-  const { type, data } = e.data;
+  const { type, data, requestId } = e.data;
+  const cacheKey = data && data.cacheKey;
   
   try {
+    // Register the calculation with its request ID for possible cancellation
+    pendingCalculations.set(requestId, { type, aborted: false });
+    
+    // Check cache first if a cache key is provided
+    if (cacheKey) {
+      const cachedResult = getFromCache(cacheKey);
+      if (cachedResult) {
+        // Add the request ID to the cached result
+        self.postMessage({ 
+          ...cachedResult,
+          requestId,
+          cacheKey,
+          fromCache: true
+        });
+        pendingCalculations.delete(requestId);
+        return;
+      }
+    }
+    
     switch (type) {
       case 'generateCurvePoints': {
         const { controlMean, controlStdDev, testMean, testStdDev, minX, maxX, stepSize } = data;
         
+        // Check if calculation was aborted before starting computation
+        if (pendingCalculations.get(requestId)?.aborted) {
+          pendingCalculations.delete(requestId);
+          return;
+        }
+        
         const controlPoints = generateNormalCurvePoints(controlMean, controlStdDev, minX, maxX, stepSize);
+        
+        // Check if aborted after controlPoints calculation
+        if (pendingCalculations.get(requestId)?.aborted) {
+          pendingCalculations.delete(requestId);
+          return;
+        }
+        
         const testPoints = generateNormalCurvePoints(testMean, testStdDev, minX, maxX, stepSize);
         
         // Find max Y value for scaling
@@ -78,15 +160,25 @@ self.onmessage = function(e) {
         const criticalZ = calculateCriticalZ(data.confidenceLevel, data.isTwoSided);
         const criticalX = controlMean + criticalZ * controlStdDev;
         
-        self.postMessage({
+        const result = {
           controlPoints,
           testPoints,
           maxY,
           criticalX,
           criticalZ,
           minX,
-          maxX
-        });
+          maxX,
+          requestId,
+          cacheKey
+        };
+        
+        // Cache the result if a cache key was provided
+        if (cacheKey) {
+          cacheResult(cacheKey, result);
+        }
+        
+        pendingCalculations.delete(requestId);
+        self.postMessage(result);
         break;
       }
       
@@ -98,7 +190,19 @@ self.onmessage = function(e) {
         
         // If the test is already significant, return 100%
         if (safePValue <= alpha) {
-          self.postMessage({ strength: 100 });
+          const result = { 
+            strength: 100,
+            requestId,
+            cacheKey
+          };
+          
+          // Cache the result if a cache key was provided
+          if (cacheKey) {
+            cacheResult(cacheKey, result);
+          }
+          
+          pendingCalculations.delete(requestId);
+          self.postMessage(result);
           return;
         }
         
@@ -106,7 +210,28 @@ self.onmessage = function(e) {
         const ratio = (1 - safePValue) / (1 - alpha);
         const strength = Math.max(1, Math.min(100, 100 * ratio));
         
-        self.postMessage({ strength });
+        const result = { 
+          strength,
+          requestId,
+          cacheKey
+        };
+        
+        // Cache the result if a cache key was provided
+        if (cacheKey) {
+          cacheResult(cacheKey, result);
+        }
+        
+        pendingCalculations.delete(requestId);
+        self.postMessage(result);
+        break;
+      }
+      
+      case 'abortCalculation': {
+        // Mark calculation as aborted so it can be terminated
+        const targetRequestId = data.targetRequestId;
+        if (targetRequestId && pendingCalculations.has(targetRequestId)) {
+          pendingCalculations.get(targetRequestId).aborted = true;
+        }
         break;
       }
       
@@ -114,6 +239,11 @@ self.onmessage = function(e) {
         throw new Error(`Unknown operation type: ${type}`);
     }
   } catch (error) {
-    self.postMessage({ error: error.message });
+    pendingCalculations.delete(requestId);
+    self.postMessage({ 
+      error: error.message,
+      requestId,
+      cacheKey
+    });
   }
 }; 

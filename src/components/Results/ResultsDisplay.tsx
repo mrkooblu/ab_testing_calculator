@@ -21,12 +21,12 @@ import ShareButton from '../common/ShareButton';
 import AutomatedInsights from './AutomatedInsights';
 import BayesianAnalysis from './BayesianAnalysis';
 import { SequentialTesting } from './SequentialTesting';
-import { SegmentAnalysisResults } from './SegmentAnalysisResults';
 import { Segment } from '../Form/SegmentationPanel';
 import WinningVariant from './WinningVariant';
 import { determineWinningVariant } from '../../utils/winningVariantAnalysis';
 import { formatPercent, formatNumber, formatPValue, DECIMAL_PRECISION } from '../../utils/constants';
 import LazyVisualization from './LazyVisualization';
+import { useVisualization } from '../../context/VisualizationContext';
 
 // Define keyframe animations
 const fadeIn = keyframes`
@@ -64,7 +64,7 @@ const highlightValue = keyframes`
 `;
 
 // Define a new type for analysis method options
-type AnalysisMethod = 'frequentist' | 'bayesian' | 'sequential' | 'segmentation';
+type AnalysisMethod = 'frequentist' | 'bayesian' | 'sequential';
 
 interface ResultsDisplayProps {
   data: ABTestFormData;
@@ -417,7 +417,19 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
   // Track if this is a fresh display for animations
   const [isNewDisplay, setIsNewDisplay] = useState(false);
   // Add state for the analysis method
-  const [analysisMethod, setAnalysisMethod] = useState<AnalysisMethod>('frequentist');
+  const [activeTab, setActiveTab] = useState('frequentist');
+  const [prevActiveTab, setPrevActiveTab] = useState<string | null>(null);
+  const { setActiveTab: setVisualizationTab } = useVisualization();
+  // Track previous analysis method to handle transitions
+  const [prevAnalysisMethod, setPrevAnalysisMethod] = useState<AnalysisMethod | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // Track which visualization tabs have been cached
+  const [cachedVisualizations, setCachedVisualizations] = useState({
+    frequentist: false,
+    bayesian: false,
+    sequential: false
+  });
 
   useEffect(() => {
     if (isVisible) {
@@ -429,6 +441,21 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
       return () => clearTimeout(timer);
     }
   }, [isVisible, data]);
+  
+  // When the active results tab changes, update visualization context
+  useEffect(() => {
+    setVisualizationTab(activeTab);
+    
+    // For transition tracking
+    if (activeTab !== prevActiveTab) {
+      setPrevActiveTab(activeTab);
+    }
+  }, [activeTab, prevActiveTab, setVisualizationTab]);
+  
+  // Handle tab changes
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+  };
 
   // Get active variants (those with visitors > 0)
   const activeVariantKeys = Object.keys(variants).filter(
@@ -537,6 +564,26 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
   const [activeComparison, setActiveComparison] = useState<{controlKey: VariantKey, testKey: VariantKey} | null>(
     comparisons.length > 0 ? { controlKey: comparisons[0].controlKey, testKey: comparisons[0].testKey } : null
   );
+  
+  // Update prevAnalysisMethod when activeTab changes
+  useEffect(() => {
+    if (activeTab !== prevActiveTab) {
+      setPrevAnalysisMethod(prevActiveTab as AnalysisMethod);
+      // Set transition flag
+      setIsTransitioning(true);
+      
+      // Clear transition flag after a short delay
+      setTimeout(() => {
+        setIsTransitioning(false);
+        
+        // Mark the new tab as cached to avoid recalculations
+        setCachedVisualizations(prev => ({
+          ...prev,
+          [activeTab]: true
+        }));
+      }, 300);
+    }
+  }, [activeTab, prevActiveTab]);
   
   if (comparisons.length === 0) {
     return null;
@@ -676,32 +723,29 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
         <AnalysisMethodTitle>Analysis Methods</AnalysisMethodTitle>
         <AnalysisToggleContainer>
           <ToggleButton 
-            active={analysisMethod === 'frequentist'} 
-            onClick={() => setAnalysisMethod('frequentist')}
+            active={activeTab === 'frequentist'} 
+            onClick={() => handleTabChange('frequentist')}
+            disabled={isTransitioning}
           >
             Frequentist
           </ToggleButton>
           <ToggleButton 
-            active={analysisMethod === 'bayesian'} 
-            onClick={() => setAnalysisMethod('bayesian')}
+            active={activeTab === 'bayesian'} 
+            onClick={() => handleTabChange('bayesian')}
+            disabled={isTransitioning}
           >
             Bayesian
           </ToggleButton>
           <ToggleButton 
-            active={analysisMethod === 'sequential'} 
-            onClick={() => setAnalysisMethod('sequential')}
+            active={activeTab === 'sequential'} 
+            onClick={() => handleTabChange('sequential')}
+            disabled={isTransitioning}
           >
             Sequential
           </ToggleButton>
-          <ToggleButton 
-            active={analysisMethod === 'segmentation'} 
-            onClick={() => setAnalysisMethod('segmentation')}
-          >
-            Segmentation
-          </ToggleButton>
         </AnalysisToggleContainer>
 
-        {analysisMethod === 'frequentist' && (
+        {activeTab === 'frequentist' && (
           <>
             {/* Add warning banner based on sample size check */}
             {(() => {
@@ -723,7 +767,13 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
               return null;
             })()}
             
-            <LazyVisualization priority={8}>
+            <LazyVisualization 
+              priority={8} 
+              forceLoading={activeTab === 'frequentist' && isTransitioning} 
+              isCached={cachedVisualizations.frequentist}
+              prevTabName={prevAnalysisMethod}
+              currentTabName="frequentist"
+            >
               <ConfidenceVisualization
                 controlMean={controlVariant.conversionRate}
                 controlStdDev={
@@ -818,7 +868,15 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
               </StatItem>
             </StatsGrid>
             
-            <LazyVisualization priority={9} height={120} minHeight={100}>
+            <LazyVisualization 
+              priority={9} 
+              height={120} 
+              minHeight={100} 
+              forceLoading={activeTab === 'frequentist' && isTransitioning}
+              isCached={cachedVisualizations.frequentist}
+              prevTabName={prevAnalysisMethod}
+              currentTabName="frequentist"
+            >
               <TestStrengthMeter
                 pValue={pValue}
                 confidenceLevel={settings.confidenceLevel}
@@ -872,8 +930,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
           </>
         )}
         
-        {analysisMethod === 'bayesian' && (
-          <LazyVisualization priority={5}>
+        {activeTab === 'bayesian' && (
+          <LazyVisualization 
+            priority={5} 
+            forceLoading={activeTab === 'bayesian' && isTransitioning}
+            isCached={cachedVisualizations.bayesian}
+            prevTabName={prevAnalysisMethod}
+            currentTabName="bayesian"
+          >
             <BayesianAnalysis
               testData={data}
               controlKey={controlKey}
@@ -882,23 +946,18 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, isVisible, segmen
           </LazyVisualization>
         )}
         
-        {analysisMethod === 'sequential' && (
-          <LazyVisualization priority={5}>
+        {activeTab === 'sequential' && (
+          <LazyVisualization 
+            priority={5} 
+            forceLoading={activeTab === 'sequential' && isTransitioning}
+            isCached={cachedVisualizations.sequential}
+            prevTabName={prevAnalysisMethod}
+            currentTabName="sequential"
+          >
             <SequentialTesting
               testData={data}
               controlKey={controlKey}
               testKey={testKey}
-            />
-          </LazyVisualization>
-        )}
-        
-        {analysisMethod === 'segmentation' && segments.length > 0 && (
-          <LazyVisualization priority={4}>
-            <SegmentAnalysisResults
-              testData={data}
-              controlKey={controlKey}
-              testKey={testKey}
-              segments={segments}
             />
           </LazyVisualization>
         )}
