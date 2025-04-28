@@ -317,6 +317,71 @@ const ConfidenceIndicator = styled.div`
 const ConfidenceLabel = styled.span`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   color: #000000;
+  display: flex; 
+  align-items: center;
+`;
+
+const InfoIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: ${({ theme }) => theme.colors.primary}10;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 12px;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  margin-left: ${({ theme }) => theme.spacing.xs};
+  cursor: help;
+  position: relative;
+  transition: all ${({ theme }) => theme.transitions.short};
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primary}30;
+  }
+  
+  &:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 10px;
+    width: max-content;
+    max-width: 280px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    background-color: rgba(33, 33, 33, 0.95);
+    color: white;
+    font-size: 13px;
+    z-index: 1000;
+    line-height: 1.4;
+    text-align: left;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    
+    /* Arrow pointing up */
+    &:before {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent transparent rgba(33, 33, 33, 0.95) transparent;
+    }
+    
+    @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+      max-width: 250px;
+      left: 0;
+      transform: none;
+      
+      &:before {
+        left: 10px;
+      }
+    }
+  }
 `;
 
 const ConfidenceExplanation = styled.p`
@@ -466,14 +531,29 @@ const ToggleSwitch = styled.label`
   }
 `;
 
-const getRecommendationText = (confidenceLevel: number, variantType: VariantType) => {
-  if (confidenceLevel >= 95) {
+// Function to get recommendation text based on confidence level
+const getRecommendationText = (
+  confidence: number, 
+  variantType: VariantType,
+  threshold: number
+): string => {
+  // Strong evidence - high confidence
+  if (confidence >= threshold) {
     return `Strong evidence - Implement Variant ${variantType}`;
-  } else if (confidenceLevel >= 80) {
-    return `Moderate evidence - Consider implementing Variant ${variantType}`;
-  } else {
-    return 'Insufficient evidence - Continue testing';
   }
+  
+  // Moderate evidence - medium confidence
+  if (confidence >= 80) {
+    return `Moderate evidence - Consider Variant ${variantType}`;
+  }
+  
+  // Evidence is weak but trending
+  if (confidence >= 70) {
+    return `Weak evidence - Continue testing Variant ${variantType}`;
+  }
+  
+  // Insufficient evidence - very low confidence
+  return `Insufficient evidence - Results are not conclusive`;
 };
 
 const WinningVariant: React.FC<WinningVariantProps> = ({
@@ -485,7 +565,7 @@ const WinningVariant: React.FC<WinningVariantProps> = ({
   confidenceThreshold = 95
 }) => {
   const hasComparisons = comparisons && comparisons.length > 0;
-  const isHighConfidence = confidenceLevel >= 95;
+  const isHighConfidence = confidenceLevel >= confidenceThreshold;
   const [showDetails, setShowDetails] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   
@@ -578,7 +658,12 @@ const WinningVariant: React.FC<WinningVariantProps> = ({
           
           <ConfidenceIndicator>
             <div>
-              <ConfidenceLabel>Confidence</ConfidenceLabel>
+              <ConfidenceLabel>
+                Confidence
+                <InfoIcon data-tooltip={
+                  `Probability this variant truly outperforms others. Limited by statistical significance of individual comparisons and won't reach ${confidenceThreshold}% if comparisons aren't significant.`
+                }>?</InfoIcon>
+              </ConfidenceLabel>
               {showDetails && (
                 <ConfidenceExplanation>
                   Statistical confidence this is the best variant
@@ -591,7 +676,7 @@ const WinningVariant: React.FC<WinningVariantProps> = ({
         {/* Action recommendation banner */}
         <RecommendationBanner confidence={confidenceLevel}>
           <RecommendationText>
-            {getRecommendationText(confidenceLevel, winningVariantType)}
+            {getRecommendationText(confidenceLevel, winningVariantType, confidenceThreshold)}
           </RecommendationText>
         </RecommendationBanner>
       </MetricsColumn>

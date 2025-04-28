@@ -388,6 +388,7 @@ const TooltipContainer = styled.div`
   margin-left: ${({ theme }) => theme.spacing.xs};
 `;
 
+// Create the TooltipIcon component first
 const TooltipIcon = styled.span`
   display: inline-flex;
   align-items: center;
@@ -401,38 +402,50 @@ const TooltipIcon = styled.span`
   font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   cursor: help;
   transition: all ${({ theme }) => theme.transitions.short};
-  
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.primary}30;
-  }
 `;
 
+// Then create the TooltipContent component that references TooltipIcon
 const TooltipContent = styled.div`
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: ${({ theme }) => theme.colors.text.primary};
+  margin-top: 10px;
+  background-color: rgba(33, 33, 33, 0.95);
   color: white;
-  padding: ${({ theme }) => theme.spacing.sm};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
-  width: 200px;
-  z-index: 10;
-  font-size: ${({ theme }) => theme.typography.fontSize.xs};
-  text-align: center;
+  padding: 10px 14px;
+  border-radius: 4px;
+  width: max-content;
+  max-width: 280px;
+  z-index: 1000;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   visibility: hidden;
   opacity: 0;
   transition: opacity 0.3s ease, visibility 0.3s ease;
   
-  &::after {
-    content: '';
+  /* Arrow pointing up */
+  &:before {
+    content: "";
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: ${({ theme }) => theme.colors.text.primary} transparent transparent transparent;
+    border-color: transparent transparent rgba(33, 33, 33, 0.95) transparent;
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    max-width: 250px;
+    left: 0;
+    transform: none;
+    
+    &:before {
+      left: 10px;
+    }
   }
   
   ${TooltipIcon}:hover + & {
@@ -455,14 +468,20 @@ const InputTooltip = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.text.secondary};
-  color: white;
-  font-size: 10px;
+  background-color: ${({ theme }) => theme.colors.primary}10;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 12px;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   cursor: help;
   z-index: 5; /* Ensure the icon itself has a z-index */
+  transition: all ${({ theme }) => theme.transitions.short};
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primary}30;
+  }
 `;
 
 // Fixed positioning tooltip that looks like the screenshot
@@ -472,34 +491,34 @@ const TooltipData = styled.div`
   position: absolute;
   background-color: rgba(33, 33, 33, 0.95);
   color: white;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 4px;
-  text-align: center;
+  text-align: left;
   width: max-content;
-  max-width: 250px;
-  font-size: 12px;
+  max-width: 280px;
+  font-size: 13px;
   line-height: 1.4;
   z-index: 1000;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   pointer-events: none; /* Prevent tooltip from blocking hover */
   
   /* Position the tooltip */
-  bottom: 100%;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-bottom: 10px; /* Space between tooltip and icon */
+  margin-top: 10px; /* Space between tooltip and icon */
   transition: opacity 0.2s, visibility 0.2s;
   
-  /* Arrow pointing down */
-  &::after {
+  /* Arrow pointing up */
+  &::before {
     content: "";
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: rgba(33, 33, 33, 0.95) transparent transparent transparent;
+    border-color: transparent transparent rgba(33, 33, 33, 0.95) transparent;
   }
   
   ${InputTooltip}:hover & {

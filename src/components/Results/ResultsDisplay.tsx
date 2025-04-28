@@ -232,32 +232,62 @@ const InfoIcon = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.text.secondary};
-  color: white;
-  font-size: 10px;
+  background-color: ${({ theme }) => theme.colors.primary}10;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 12px;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   margin-left: ${({ theme }) => theme.spacing.xs};
   cursor: help;
   position: relative;
+  transition: all ${({ theme }) => theme.transitions.short};
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primary}30;
+  }
   
   &:hover::after {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: 24px;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
+    margin-top: 10px;
     width: max-content;
-    max-width: 250px;
-    padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
-    border-radius: ${({ theme }) => theme.borderRadius.sm};
-    background-color: ${({ theme }) => theme.colors.text.primary};
+    max-width: 280px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    background-color: rgba(33, 33, 33, 0.95);
     color: white;
-    font-size: ${({ theme }) => theme.typography.fontSize.xs};
-    z-index: 10;
+    font-size: 13px;
+    z-index: 1000;
     line-height: 1.4;
     text-align: left;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    
+    /* Arrow pointing up */
+    &:before {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: transparent transparent rgba(33, 33, 33, 0.95) transparent;
+    }
+    
+    @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+      max-width: 250px;
+      left: 0;
+      transform: none;
+      
+      &:before {
+        left: 10px;
+      }
+    }
   }
 `;
 

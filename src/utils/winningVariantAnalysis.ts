@@ -51,6 +51,8 @@ export const determineWinningVariant = (
   // Calculate average p-value against all other variants to determine confidence
   let totalPValues = 0;
   let comparisonCount = 0;
+  let allComparisonsSignificant = true;
+  const alpha = (100 - baseConfidenceLevel) / 100; // Convert confidence level to alpha
 
   for (const key of activeVariantKeys) {
     if (key === winningKey) continue;
@@ -79,6 +81,11 @@ export const determineWinningVariant = (
     // Using one-sided test since we're checking if winner > challenger
     const pValue = 1 - normalCDF(zScore);
     
+    // Check if this comparison is significant
+    if (pValue >= alpha) {
+      allComparisonsSignificant = false;
+    }
+    
     totalPValues += pValue;
     comparisonCount++;
   }
@@ -90,11 +97,21 @@ export const determineWinningVariant = (
   // The more significant the comparisons, the higher the confidence
   const adjustedConfidence = (1 - avgPValue) * 100;
   
-  // Weight the adjusted confidence with the base confidence level
-  const finalConfidence = Math.min(
-    Math.round((adjustedConfidence + baseConfidenceLevel) / 2),
-    baseConfidenceLevel
-  );
+  // If any comparison is not significant, cap the confidence below the threshold
+  let finalConfidence;
+  if (!allComparisonsSignificant) {
+    // Cap the confidence below the significance threshold 
+    finalConfidence = Math.min(
+      Math.round(adjustedConfidence),
+      baseConfidenceLevel - 5
+    );
+  } else {
+    // All comparisons are significant, we can use the full confidence level
+    finalConfidence = Math.min(
+      Math.round(adjustedConfidence),
+      baseConfidenceLevel
+    );
+  }
 
   return {
     winningKey,

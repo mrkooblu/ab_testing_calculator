@@ -21,42 +21,65 @@ const TooltipIcon = styled.div<{ size?: number }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: ${({ size }) => size || 16}px;
-  height: ${({ size }) => size || 16}px;
+  width: ${({ size }) => size || 18}px;
+  height: ${({ size }) => size || 18}px;
   border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.primary};
-  color: white;
-  font-size: ${({ size }) => (size ? `${size * 0.6}px` : '10px')};
+  background-color: ${({ theme }) => theme.colors.primary}10;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: ${({ size }) => (size ? `${size * 0.6}px` : '12px')};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   margin-left: 4px;
   cursor: help;
-  opacity: 0.8;
-  transition: opacity 0.2s;
-
+  transition: all ${({ theme }) => theme.transitions.short};
+  
   &:hover {
-    opacity: 1;
+    background-color: ${({ theme }) => theme.colors.primary}30;
   }
 `;
 
 const TooltipContent = styled.div<{ visible: boolean; maxWidth?: string }>`
   position: absolute;
-  top: -8px;
+  top: 100%;
   left: 50%;
-  transform: translate(-50%, -100%);
+  transform: translateX(-50%);
+  margin-top: 10px;
   background-color: rgba(33, 33, 33, 0.95);
   color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: 4px;
   font-size: 13px;
   line-height: 1.4;
   text-align: left;
   z-index: 1000;
-  max-width: ${({ maxWidth }) => maxWidth || '250px'};
+  max-width: ${({ maxWidth }) => maxWidth || '280px'};
   width: max-content;
   opacity: ${({ visible }) => (visible ? 1 : 0)};
   visibility: ${({ visible }) => (visible ? 'visible' : 'hidden')};
   transition: opacity 0.2s, visibility 0.2s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   pointer-events: none;
+  
+  /* Arrow pointing up */
+  &:before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent rgba(33, 33, 33, 0.95) transparent;
+  }
+  
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    max-width: 250px;
+    left: 0;
+    transform: none;
+    
+    &:before {
+      left: 10px;
+    }
+  }
 `;
 
 const VisualExample = styled.div`
@@ -98,7 +121,7 @@ const Tooltip: React.FC<TooltipProps> = ({
       {children}
       {showIcon && (
         <TooltipIcon size={iconSize}>
-          i
+          ?
         </TooltipIcon>
       )}
       <TooltipContent
