@@ -109,8 +109,8 @@ export const determineWinningVariant = (
     // All comparisons are significant, we can use the full confidence level
     finalConfidence = Math.min(
       Math.round(adjustedConfidence),
-      baseConfidenceLevel
-    );
+    baseConfidenceLevel
+  );
   }
 
   return {
